@@ -1,0 +1,490 @@
+/* ======================================================
+   GLOBAL THEME — Matches designworkflow.js
+   ====================================================== */
+
+/* ---------- Base ---------- */
+
+/* Center the app and limit width */
+#app,
+#app-root,
+#root {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;     /* centers it */
+  padding: 0 16px;    /* optional: provides breathing room on the sides */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  padding-top: var(--topbar-h);
+  margin: 0;
+  color: #0f172a;
+  font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+
+  /* SAME dotted background as designworkflow.js */
+  background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-color: #ffffff;
+  scroll-padding-top: var(--topbar-h);
+}
+
+/* ======================================================
+   ✅ KEEP YOUR OLD TOP NAVIGATION EXACTLY AS IT WAS
+   (This block stays unchanged — use your existing code)
+   ====================================================== */
+
+
+/* ======================================================
+   PAGE HEAD (Matches designworkflow.js)
+   ====================================================== */
+.page-head {
+  margin: 22px auto 18px;
+  width: min(1200px, 92vw);
+}
+.page-title {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  margin: 0;
+}
+.subtle { 
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+
+/* ======================================================
+   DASHBOARD MAIN CONTENT AREA
+   (Centered container, dotted background, no sidebar)
+   ====================================================== */
+.dashboard-container {
+  width: min(1200px, 92vw);
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Canvas behind content */
+.dashboard-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Scrollable foreground content */
+.dashboard-stage {
+  position: relative;
+  z-index: 1;
+  padding: 24px 0;
+}
+
+
+/* ======================================================
+   MINI NAVIGATION (matches workflow button style)
+   ====================================================== */
+.mini-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.mini-btn {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  text-decoration: none;
+  color: #0f172a;
+  transition: 0.25s ease;
+}
+
+.mini-btn:hover {
+  transform: translateY(-2px);
+  background: #f8fafc;
+}
+
+/* ✅ ACTIVE mini tab (same blue as your top navigation active) */
+:root { --accent: #2563eb; }
+.mini-btn.active {
+  color: #fff !important;
+  background: color-mix(in srgb, var(--accent) 35%, #3b82f6) !important;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: translateY(-2px);
+}
+
+
+/* ======================================================
+   CARDS — Matches designworkflow.js flow-card style
+   ====================================================== */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+  justify-content: center;
+}
+
+.card {
+  grid-column: span 3;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  transition: transform 0.15s ease;
+}
+.card:hover { transform: translateY(-2px); }
+
+.card.wide {
+  grid-column: span 12;
+}
+
+/* typography */
+.kicker {
+  color: #475569; 
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.big {
+  font-size: 34px;
+  font-weight: 900;
+  margin-top: 6px;
+}
+.label {
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* responsive */
+@media (max-width: 900px){
+  .card { grid-column: span 6; }
+}
+@media (max-width: 600px){
+  .card { grid-column: span 12; }
+  .page-title { font-size: 24px; }
+}
+
+/* =========================
+   Fixed, Transparent (Glassy) Top Navigation
+   Keeps showing while scrolling; no overlap with content
+   ========================= */
+
+:root { --topbar-h: 64px; }  /* adjust to your bar’s height */
+
+/* Full-width fixed bar, transparent, with blur */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--topbar-h);
+  z-index: 1000;
+
+  /* transparent but glassy */
+  background: transparent;                  /* stay see-through */
+  backdrop-filter: blur(22px) saturate(175%);
+  -webkit-backdrop-filter: blur(22px) saturate(175%);
+  border-bottom: 1px solid var(--lg-stroke);
+}
+
+/* Centered container inside topbar */
+/* Keep your inner content centered as before */
+.topnav {
+  width: min(1200px, 92vw);
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* =========================
+   Tabs — Pill Style
+   ========================= */
+.tabs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Default pill */
+.tab-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px 14px;
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: .2px;
+
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.tab-link:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* Active pill (same blue as before) */
+:root { --accent: #2563eb; }
+
+.tab-link.active {
+  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 35%, #3b82f6);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: translateY(-2px);
+}
+
+/* =========================
+   Mobile Dropdown
+   ========================= */
+.menu-btn {
+  display: none;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+
+  background: var(--lg-bg);
+  border: 1px solid var(--lg-stroke);
+
+  backdrop-filter: blur(calc(var(--lg-blur)*.6)) saturate(var(--lg-sat));
+  -webkit-backdrop-filter: blur(calc(var(--lg-blur)*.6)) saturate(var(--lg-sat));
+}
+
+.menu-lines,
+.menu-lines::before,
+.menu-lines::after {
+  position: absolute;
+  left: 10px; right: 10px;
+  height: 2px; background: #111; content: "";
+}
+.menu-lines { top: 19px; }
+.menu-lines::before { top: -8px; }
+.menu-lines::after  { top: 8px; }
+
+@media (max-width: 700px) {
+  .menu-btn { display: inline-block; }
+
+  .tabs { display: none; }
+
+  .topbar.open .tabs {
+    display: flex;
+    position: absolute;
+    left: 0; right: 0; top: 100%;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+
+    background: var(--lg-bg-hover);
+    border-bottom: 1px solid var(--lg-stroke);
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+  }
+
+  .topbar.open .tab-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================
+   Brand — Now Styled as a Pill
+   ========================= */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 14px;
+  border-radius: 999px;
+
+  /* Same pill look as tabs */
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  color: var(--ink);
+  font-weight: 800;
+  letter-spacing: .2px;
+
+  transition: background .15s ease, transform .15s ease;
+}
+
+.brand:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* Brand square icon */
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+
+  background: #111; 
+  color: #fff;
+  border-radius: 6px;
+
+  font-weight: 900;
+  font-size: 13px;
+}
+
+/* Brand name text inside pill */
+.brand-name {
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: .3px;
+}
+
+/* Mobile dropdown stays attached under the fixed bar */
+@media (max-width: 700px) {
+  .topbar.open .tabs {
+    position: fixed;          /* anchor to the bar */
+    top: var(--topbar-h);
+    left: 0; right: 0;
+  }
+}
+
+/* ==========================================================
+   CALL STATS — Blue Gradient Liquid Glass Cards
+   ========================================================== */
+
+#calls-stats .card {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 64, 175, 0.85) 0%,
+    rgba(37, 99, 235, 0.60) 48%,
+    rgba(30, 64, 175, 0.90) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border-radius: 1.5rem;
+
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
+
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+#calls-stats .card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.30),
+    0 6px 14px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* ==========================================================
+   ADD BUTTON — Green Liquid Glass Pill
+   ========================================================== */
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  cursor: pointer;
+
+  background: rgba(34, 197, 94, 0.16); /* soft green tint */
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #052e0f;
+
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+
+  box-shadow:
+    0 12px 24px rgba(34, 197, 94, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  transition:
+    background .25s ease,
+    box-shadow .25s ease,
+    transform .25s ease;
+
+  text-decoration: none !important;
+
+}
+
+.btn-add:hover {
+  background: rgba(34, 197, 94, 0.32);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 32px rgba(34, 197, 94, 0.28),
+    0 6px 14px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255,255,255,0.32);
+}
+
+.btn-add:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================================
+   DELETE BUTTON — Red Liquid Glass Pill
+   ========================================================== */
+.btn-delete {
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+
+  background: rgba(239, 68, 68, 0.16); /* soft red tint */
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #7f1111;
+
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+
+  box-shadow:
+    0 12px 24px rgba(239, 68, 68, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+
+  transition:
+    background .25s ease,
+    transform .25s ease,
+    box-shadow .25s ease;
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.25);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 32px rgba(239, 68, 68, 0.32),
+    0 6px 14px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255,255,255,0.28);
+}
+
+.btn-delete:active {
+  transform: scale(0.96);
+}
+

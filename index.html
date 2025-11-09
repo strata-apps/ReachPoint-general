@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ReachPoint</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <!-- Glass / translucent top navigation (always visible) -->
+    <header class="topbar" id="topbar">
+      <nav class="topnav container">
+        <div class="brand">
+          <span class="brand-name">ReachPoint</span>
+        </div>
+
+        <!-- Mobile menu button (shows only on small screens) -->
+        <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="top-tabs" aria-label="Open navigation">
+          <!-- simple burger -->
+          <span class="menu-lines"></span>
+        </button>
+
+        <ul class="tabs" id="top-tabs">
+          <li><a data-route="#/dashboard" class="tab-link">Dahsboard</a></li>
+          <li><a data-route="#/calls" class="tab-link">Calls</a></li>
+          <li><a data-route="#/emails" class="tab-link">Emails</a></li>
+          <li><a data-route="#/tasks" class="tab-link">Tasks</a></li>
+          <li><a data-route="#/insights" class="tab-link">Insights</a></li>
+          <li><a data-route="#/contacts" class="tab-link">Contacts</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Main mount point -->
+    <main id="app" class="container"></main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
