@@ -4,25 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ReachPoint</title>
+
+    <!-- Base styles (your liquid-glass theme, tabs, cards, etc.) -->
     <link rel="stylesheet" href="./styles.css" />
+
+    <!-- Optional: Inter font (matches your design vibe) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
 
   <body>
-    <!-- Glass / translucent top navigation (always visible) -->
+    <!-- Top navigation (sticky, glass) -->
     <header class="topbar" id="topbar">
       <nav class="topnav container">
         <div class="brand">
           <span class="brand-name">ReachPoint</span>
         </div>
 
-        <!-- Mobile menu button (shows only on small screens) -->
+        <!-- Mobile menu button -->
         <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="top-tabs" aria-label="Open navigation">
-          <!-- simple burger -->
           <span class="menu-lines"></span>
         </button>
 
+        <!-- Pills nav -->
         <ul class="tabs" id="top-tabs">
-          <li><a data-route="#/dashboard" class="tab-link">Dahsboard</a></li>
+          <li><a data-route="#/dashboard" class="tab-link">Dashboard</a></li>
           <li><a data-route="#/calls" class="tab-link">Calls</a></li>
           <li><a data-route="#/emails" class="tab-link">Emails</a></li>
           <li><a data-route="#/tasks" class="tab-link">Tasks</a></li>
@@ -33,8 +39,12 @@
     </header>
 
     <!-- Main mount point -->
-    <main id="app" class="container"></main>
+    <main id="app" class="container" role="main"></main>
 
-    <script type="module" src="./app.js"></script>
+    <!-- Load Supabase first, then the router/app -->
+    <script type="module">
+      import './supabaseClient.js';  // exposes `window.supabase` and exports `supabase`
+      import './app.js';             // your hash router + dynamic imports
+    </script>
   </body>
 </html>

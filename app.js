@@ -2,39 +2,39 @@
 
 const routes = {
   '#/dashboard': async (root) => {
-    const module = await import('./ReachPoint/screens/dashboard.js');
+    const module = await import('./screens/dashboard.js');
     return module.default(root);
   },
 
   '#/calls': async (root) => {
-    const module = await import('./ReachPoint/screens/calls.js');
+    const module = await import('./screens/calls.js');
     return module.default(root);
   },
 
   '#/create-calls': async (root) => {
-    const module = await import('./ReachPoint/screens/create_calls.js');
+    const module = await import('./screens/create_calls.js');
     return module.default(root);
   },
 
   // ✅ Workflow Designer
   '#/workflow': async (root) => {
-    const module = await import('./ReachPoint/screens/designworkflow.js');
+    const module = await import('./screens/designworkflow.js');
     return module.default(root);
   },
 
   // ✅ Email campaigns
   '#/emails': async (root) => {
-    const module = await import('./ReachPoint/screens/emails.js');
+    const module = await import('./screens/emails.js');
     return module.default(root);
   },
 
   '#/create-emails': async (root) => {
-    const module = await import('./ReachPoint/screens/create_emails.js');
+    const module = await import('./screens/create_emails.js');
     return module.default(root);
   },
 
   '#/call-execution': async (root) => {
-    const module = await import('./ReachPoint/screens/call_execution.js');
+    const module = await import('./screens/call_execution.js');
     return module.default(root);
   },
 
