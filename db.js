@@ -81,7 +81,7 @@ export async function upsertCallProgress({
   campaign_id,
   contact_id,
   outcome,            // 'answered' | 'no_answer' | etc.
-  responses = null,   // string or null
+  response = null,   // string or null
   notes = null,       // string or null
 }) {
   const now = new Date().toISOString();
@@ -89,7 +89,7 @@ export async function upsertCallProgress({
     campaign_id,
     contact_id,
     outcome,
-    responses,
+    response,
     notes,
     last_called_at: now,
     attempts: 1,

@@ -1,6 +1,6 @@
 // functions/tasks_function.js
 // Minimal task creator for this specific contact.
-// Table: tasks(id, text, active, user_id)
+// Table: tasks(id, contact_id, text, active, user_id)
 
 function el(tag, cls, text){ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; }
 const div = (...args) => el('div', ...args);
