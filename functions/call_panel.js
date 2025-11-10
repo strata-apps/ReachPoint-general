@@ -3,11 +3,25 @@
 // Renders into a given container and returns a getPayload() for saving.
 
 export function renderCallPanel(container, { contact, defaults = {} } = {}) {
-  const el = (t,a={},...k)=>{ if(typeof a==='string') a={class:a}; const n=document.createElement(t);
-    for(const [k2,v] of Object.entries(a)){ if(k2==='class') n.className=v; else if(k2==='style'&&v&&typeof v==='object') Object.assign(n.style,v);
-      else if(k2.startsWith('on')&&typeof v==='function') n[k2]=v; else if(v!=null) n.setAttribute(k2,v); }
-    for(const kid of k.flat()) n.appendChild(typeof kid==='string'?document.createTextNode(kid):kid); return n; };
-  const div = (a,...k)=>el('div',a,...k);
+  const el = (t, a = {}, ...k) => {
+  if (a == null) a = {};                       // <-- guard null/undefined
+  if (typeof a === 'string') a = { class: a };
+  const n = document.createElement(t);
+
+  for (const [k2, v] of Object.entries(a)) {
+    if (k2 === 'class') n.className = v;
+    else if (k2 === 'style' && v && typeof v === 'object') Object.assign(n.style, v);
+    else if (k2.startsWith('on') && typeof v === 'function') n[k2] = v;
+    else if (v != null) n.setAttribute(k2, v);
+  }
+  for (const kid of k.flat()) {
+    n.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+  }
+  return n;
+};
+const div = (a, ...k) => el('div', a == null ? {} : a, ...k); // <-- coalesce attrs to {}
+
+
 
   container.innerHTML = '';
 
