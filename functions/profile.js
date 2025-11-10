@@ -1,26 +1,27 @@
 // functions/profile.js
-// Modal with tabbed profile view for a contact:
-// - Overview: pretty view of contact fields (contacts table)
-// - Campaign Notes: notes from campaign_progress per campaign_name
-// - Single Calls: single_calls list (outcome, response, notes, user_id, time)
-// - Tasks: current user's tasks for this contact with "Complete" (delete)
+// Tabbed profile modal for a contact.
+// Tabs: Overview, Campaign Notes, Interactions (merged timeline).
 //
 // Requires: window.supabase client
 
+import { renderInteractions } from './interactions.js';
+
 export function openProfileModal(contact) {
+  // FIX TDZ: define sup() immediately so all inner renderers can call it safely.
+  const sup = () => window.supabase;
+
   const { close, body, footer, titleEl } = buildModal('Contact Profile');
   const displayName = [contact.contact_first, contact.contact_last].filter(Boolean).join(' ').trim() || 'Contact';
   titleEl.insertAdjacentHTML('beforeend', `
     <div class="label" style="margin-top:4px">${escapeHtml(displayName)}</div>
   `);
 
-  // Tabs header
+  // Tabs
   const tabsBar = el('div', { style: { display:'flex', gap:'8px', borderBottom:'1px solid rgba(0,0,0,.08)', paddingBottom:'6px', marginBottom:'10px' }});
   const tabs = [
-    { id: 'tab-overview', label: 'Overview' },
-    { id: 'tab-notes',    label: 'Campaign Notes' },
-    { id: 'tab-calls',    label: 'Single Calls' },
-    { id: 'tab-tasks',    label: 'Tasks' },
+    { id: 'tab-overview',     label: 'Overview' },
+    { id: 'tab-notes',        label: 'Campaign Notes' },
+    { id: 'tab-interactions', label: 'Interactions' },
   ];
   tabs.forEach(t => {
     const b = el('button', { class:'btn', 'data-tab': t.id }, t.label);
@@ -28,30 +29,28 @@ export function openProfileModal(contact) {
   });
   body.appendChild(tabsBar);
 
-  // Tab sections
+  // Sections
   const sections = {
-    overview: el('div'),
-    notes:    el('div', { style:{ display:'none' } }),
-    calls:    el('div', { style:{ display:'none' } }),
-    tasks:    el('div', { style:{ display:'none' } })
+    overview:     el('div'),
+    notes:        el('div', { style:{ display:'none' } }),
+    interactions: el('div', { style:{ display:'none' } }),
   };
-  body.append(sections.overview, sections.notes, sections.calls, sections.tasks);
+  body.append(sections.overview, sections.notes, sections.interactions);
 
-  // Load data
+  // Render
   renderOverview();
   renderNotes();
-  renderCalls();
-  renderTasks();
+  renderInteractions(sections.interactions, { contact_id: contact.contact_id }); // merged timeline
 
-  // Active tab switching
+  // Tab switching
   tabsBar.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-tab]');
     if (!b) return;
-    const id = b.getAttribute('data-tab');
-    setActive(id);
+    setActive(b.getAttribute('data-tab'));
   });
-  setActive('tab-overview'); // default
+  setActive('tab-overview');
 
+  // Footer
   const closeBtn = el('button', { class:'btn' }, 'Close');
   closeBtn.onclick = () => close();
   footer.append(closeBtn);
@@ -60,7 +59,6 @@ export function openProfileModal(contact) {
 
   async function renderOverview() {
     sections.overview.innerHTML = '';
-    // Refresh full row in case table has more columns than we initially loaded
     const { data, error } = await sup().from('contacts')
       .select('*')
       .eq('contact_id', contact.contact_id)
@@ -73,11 +71,8 @@ export function openProfileModal(contact) {
     const row = data || contact;
 
     const kv = el('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'8px', maxWidth:'720px' }});
-    const add = (k, v) => {
-      kv.append(el('div','k',k), el('div','v', escapeHtml(v ?? '—')));
-    };
+    const add = (k, v) => { kv.append(el('div','k',k), el('div','v', escapeHtml(v ?? '—'))); };
 
-    // Common fields (add any others you store)
     add('First Name', row.contact_first);
     add('Last Name',  row.contact_last);
     add('Email',      row.contact_email);
@@ -92,7 +87,6 @@ export function openProfileModal(contact) {
     const head = el('div', { style:{ display:'flex', gap:'8px', alignItems:'center', marginBottom:'10px' }});
     head.append(el('div','kicker','Campaign Notes'));
 
-    // Campaign selector
     const input = document.createElement('input');
     input.placeholder = 'Campaign name (e.g., Fall Phonebank 2025)';
     Object.assign(input.style, { flex:'1 1 auto', padding:'8px 10px', border:'1px solid #d1d5db', borderRadius:'8px' });
@@ -111,7 +105,6 @@ export function openProfileModal(contact) {
         listBox.append(el('div','label','Enter a campaign name.'));
         return;
       }
-      // Try campaign_progress as requested
       const { data, error } = await sup().from('campaign_progress')
         .select('notes, user_id, updated_at, created_at, campaign_name')
         .eq('contact_id', contact.contact_id)
@@ -140,104 +133,16 @@ export function openProfileModal(contact) {
     };
   }
 
-  async function renderCalls() {
-    sections.calls.innerHTML = '';
-    sections.calls.append(el('div','kicker','Single Calls'), el('div','label','Most recent first'));
-
-    const { data, error } = await sup().from('single_calls')
-      .select('call_time, user_id, outcome, response, notes')
-      .eq('contact_id', contact.contact_id)
-      .order('call_time', { ascending: false })
-      .limit(200);
-
-    if (error) {
-      sections.calls.append(el('div','label','Error loading calls.'));
-      return;
-    }
-    if (!data?.length) {
-      sections.calls.append(el('div','label','No calls logged yet.'));
-      return;
-    }
-
-    const table = tableView(['Time','User','Outcome','Response','Notes']);
-    data.forEach(r => {
-      tr(table.tbody,
-        fmtDate(r.call_time),
-        r.user_id || '—',
-        r.outcome || '—',
-        r.response || '—',
-        r.notes || '—'
-      );
-    });
-    sections.calls.append(table.node);
-  }
-
-  async function renderTasks() {
-    sections.tasks.innerHTML = '';
-    sections.tasks.append(el('div','kicker','Tasks'), el('div','label','Your tasks for this contact'));
-
-    const { data: { user } } = await sup().auth.getUser();
-    if (!user) {
-      sections.tasks.append(el('div','label','Sign in to view tasks.'));
-      return;
-    }
-
-    const { data, error } = await sup().from('tasks')
-      .select('id, task_text, active, created_at')
-      .eq('user_id', user.id)
-      .eq('contact_id', contact.contact_id)
-      .order('created_at', { ascending: false })
-      .limit(200);
-
-    if (error) {
-      sections.tasks.append(el('div','label','Error loading tasks.'));
-      return;
-    }
-    if (!data?.length) {
-      sections.tasks.append(el('div','label','No tasks for this contact.'));
-      return;
-    }
-
-    const list = el('div', { style:{ display:'grid', gap:'8px' }});
-    data.forEach(r => {
-      const row = el('div', { class:'card', style:{ padding:'10px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px' }});
-      row.append(
-        el('div', null,
-          el('div','big', r.task_text || '—'),
-          el('div','label', fmtDate(r.created_at))
-        ),
-        (() => {
-          const c = el('div', { style:{ display:'flex', gap:'8px' }});
-          const del = el('button', { class:'btn' }, 'Complete');
-          del.onclick = async () => {
-            const ok = confirm('Mark complete? This will delete the task.');
-            if (!ok) return;
-            const { error: delErr } = await sup().from('tasks').delete().eq('id', r.id);
-            if (delErr) return alert('Delete failed.');
-            // reload
-            renderTasks();
-          };
-          c.appendChild(del);
-          return c;
-        })()
-      );
-      list.appendChild(row);
-    });
-    sections.tasks.append(list);
-  }
-
   /* ---------------------- UI helpers ---------------------- */
 
   function setActive(id) {
     const map = {
-      'tab-overview': sections.overview,
-      'tab-notes': sections.notes,
-      'tab-calls': sections.calls,
-      'tab-tasks': sections.tasks,
+      'tab-overview':     sections.overview,
+      'tab-notes':        sections.notes,
+      'tab-interactions': sections.interactions,
     };
     Object.keys(map).forEach(k => map[k].style.display = 'none');
     (map[id] || sections.overview).style.display = '';
-    // focus first input if any
     if (id === 'tab-notes') {
       const input = sections.notes.querySelector('input');
       if (input) setTimeout(() => input.focus(), 0);
@@ -315,7 +220,6 @@ export function openProfileModal(contact) {
   function escapeHtml(s = '') {
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
-  const sup = () => window.supabase;
 }
 
 export default openProfileModal;
