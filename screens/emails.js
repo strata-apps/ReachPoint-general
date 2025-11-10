@@ -296,66 +296,56 @@ export default function Emails(root) {
     if (!id) return;
     if (!accessToken) return alert('Please sign in with Google first.');
 
-    // Load campaign
+    // 1) Load campaign
     const { data, error } = await supabase
       .from('email_campaigns')
       .select('campaign_subject, filters, email_content')
       .eq('campaign_id', id)
       .maybeSingle();
-    if (error) {
-      log('Exec load error: ' + error.message);
-      return alert('Could not load campaign.');
-    }
-    const subject = data?.campaign_subject || '(No Subject)';
-    const html    = data?.email_content || '';
+    if (error) { log('Exec load error: ' + error.message); return alert('Could not load campaign.'); }
+
+    const subject = (data?.campaign_subject || '(No Subject)').toString();
+    const html    = (data?.email_content || '').toString();
     const filters = data?.filters || null;
 
-    // Resolve recipients via public.contacts using the stored filter
+    // 2) Resolve recipients
     const emails = await resolveRecipients(filters);
     if (!emails.length) return alert('No recipients match this filter.');
-
-    // Confirm
     if (!confirm(`Send to ${emails.length} recipients now?`)) return;
 
-    // Send (BCC batch for simplicity)
+    // 3) Update UI status
     const card = listMount.querySelector(`[data-id="${CSS.escape(id)}"]`);
     setStatus(card, 'Sending…', '#1f2937');
-    let ok = false;
-    try {
-      ok = await sendGmail({
+
+    // 4) Send in BCC batches to avoid 400 due to oversized headers
+    let sent = 0, fail = 0;
+    for (const group of chunk(emails, MAX_BCC)) {
+      const ok = await sendGmail({
         to: 'me',
-        bcc: emails,
+        bcc: group,
         subject,
         text: stripHtml(html) || subject,
         html
       });
-    } catch (e) {
-      ok = false;
-      log('Exec send error: ' + (e?.message || e));
+      if (ok) sent += group.length;
+      else {
+        // fallback: one-by-one for this batch to count failures precisely
+        for (const addr of group) {
+          const one = await sendGmail({ to: addr, subject, text: stripHtml(html) || subject, html });
+          one ? sent++ : fail++;
+        }
+      }
+      await sleep(SLEEP_MS);
     }
-    if (ok) {
+
+    if (fail === 0) {
       setStatus(card, 'Completed Successfully', '#16a34a');
-      log(`✅ Campaign executed: ${id} → ${emails.length} recipients`);
     } else {
-      // Try individual fallback to capture failure counts
-      let sent = 0, fail = 0;
-      for (const addr of emails) {
-        const one = await sendGmail({
-          to: addr,
-          subject,
-          text: stripHtml(html) || subject,
-          html
-        });
-        one ? sent++ : fail++;
-      }
-      if (fail === 0) {
-        setStatus(card, 'Completed Successfully', '#16a34a');
-      } else {
-        setStatus(card, `Completed with ${fail} failed`, '#b45309');
-      }
-      log(`ℹ️ Fallback run complete: sent=${sent}, failed=${fail}`);
+      setStatus(card, `Completed with ${fail} failed`, '#b45309');
     }
+    log(`✅ Campaign executed: ${id} → sent=${sent}, failed=${fail}`);
   }
+
 
   function setStatus(card, text, color = '#1f2937') {
     if (!card) return;
@@ -475,34 +465,49 @@ export default function Emails(root) {
   }
 
   function buildRawEmail({ to, bcc, subject, text, html }) {
+    // Normalize/guard inputs
+    const sub = (subject || '').toString().replace(/\r?\n/g, ' ').trim();
+    const txt = (text || '').toString();
+    const htm = (html || '').toString();
+
     const boundary = '=_rp_' + Math.random().toString(36).slice(2);
     const headers = [];
+
     if (to) headers.push(`To: ${to}`);
     if (bcc && bcc.length) headers.push(`Bcc: ${bcc.join(', ')}`);
+
+    // Only RFC2047-encode if non-ASCII present
+    const asciiOnly = /^[\x00-\x7F]*$/.test(sub);
     headers.push(
-      `Subject: ${encodeRFC2047(subject || '')}`,
+      `Subject: ${asciiOnly ? sub : encodeRFC2047(sub)}`,
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`
     );
+
+    // Ensure CRLF everywhere and a single blank line between headers/body
     const parts = [
       `--${boundary}`,
       'Content-Type: text/plain; charset="UTF-8"',
       'Content-Transfer-Encoding: 7bit',
       '',
-      (text || (html ? stripHtml(html) : '') || '').replace(/\r?\n/g, '\r\n'),
+      (txt || (htm ? stripHtml(htm) : '') || '').replace(/\r?\n/g, '\r\n'),
 
       `--${boundary}`,
       'Content-Type: text/html; charset="UTF-8"',
       'Content-Transfer-Encoding: 7bit',
       '',
-      (html || '').replace(/\r?\n/g, '\r\n'),
+      (htm || '').replace(/\r?\n/g, '\r\n'),
 
       `--${boundary}--`,
       ''
     ];
+
     const msg = headers.join('\r\n') + '\r\n\r\n' + parts.join('\r\n');
+
+    // Base64url per Gmail spec
     return base64UrlEncode(msg);
   }
+
 
   /* ---------------- Small utils ---------------- */
 
@@ -531,6 +536,17 @@ export default function Emails(root) {
     const days = Math.round(hrs / 24);
     return `${days}d ago`;
   }
+  // --- Gmail-safe batching ---
+  const MAX_BCC = 85;          // keep well under Gmail's practical limits
+  const SLEEP_MS = 400;        // polite spacing to avoid rate spikes
+
+  function chunk(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
   function log(msg) {
     const now = new Date();
     logBox.textContent = `${logBox.textContent ? logBox.textContent + '\n' : ''}[${now.toLocaleTimeString()}] ${msg}`;
