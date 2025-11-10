@@ -11,18 +11,42 @@ export default async function TasksScreen(root) {
   root.classList.add('screen-tasks');
 
   // Basic layout
-  const el = (t, a = {}, ...kids) => {
-    const n = document.createElement(t);
-    for (const [k, v] of Object.entries(a)) {
-      if (k === 'class') n.className = v;
-      else if (k === 'style') Object.assign(n.style, v);
-      else if (k.startsWith('on') && typeof v === 'function') n[k] = v;
-      else if (v != null) n.setAttribute(k, v);
+  const el = (tag, attrs = {}, ...kids) => {
+    // Support: el('div', 'class-name', children...)
+    if (typeof attrs === 'string') {
+      attrs = { class: attrs };
     }
-    kids.flat().forEach(k => n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k));
+    if (attrs == null) attrs = {};
+
+    const n = document.createElement(tag);
+
+    // Apply attributes safely
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') {
+        n.className = v;
+      } else if (k === 'style' && typeof v === 'object' && v !== null) {
+        Object.assign(n.style, v);
+      } else if (k.startsWith('on') && typeof v === 'function') {
+        n[k] = v;
+      } else if (v !== undefined && v !== null) {
+        n.setAttribute(k, v);
+      }
+    }
+
+    // Append children
+    for (const kid of kids.flat()) {
+      if (kid == null) continue;
+      n.appendChild(
+        typeof kid === 'string'
+          ? document.createTextNode(kid)
+          : kid
+      );
+    }
+
     return n;
   };
-  const div = (...x) => el('div', ...x);
+
+  const div = (attrs, ...kids) => el('div', attrs, ...kids);
   const btn = (txt, cls = 'btn') => el('button', { class: cls }, txt);
 
   const head = div('page-head', 
