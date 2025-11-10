@@ -60,6 +60,12 @@ const routes = {
     return module.default(root);
   },
 
+  // tasks
+  '#/tasks': async (root) => {
+    const module = await import(`${BASE}/screens/tasks.js`);
+    return module.default(root);
+  },
+
   // Stubs
   '#/tasks': (root) => showPlaceholder(root, 'Tasks'),
   '#/insights': (root) => showPlaceholder(root, 'Insights'),
