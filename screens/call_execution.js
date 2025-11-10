@@ -66,6 +66,9 @@ export default async function CallExecution(root) {
   let queue = [];              // [contact_id]
   let index = 0;               // current pointer in queue
   let totals = { total: 0, made: 0, answered: 0, missed: 0 };
+  function isFinished() {
+    return totals.total > 0 && totals.made >= totals.total;
+  }
   let progressRows = [];   // full rows from call_progress for this campaign
   let contactsById = new Map();  // Map contact_id -> contact row
 
@@ -170,8 +173,72 @@ export default async function CallExecution(root) {
   /* ------------------------------ Render ------------------------------ */
   function render() {
     wrap.innerHTML = '';
+    // Always open on insights + summary table
+    renderSummary();
+  }
 
-    // Progress header (same structure as your first version)
+  /* --------------------------- Summary Screen --------------------------- */
+  function renderSummary() {
+    wrap.innerHTML = `
+      <div class="cards" style="align-items:flex-start">
+        <div class="card" style="grid-column:span 12; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div class="kicker">Campaign Overview</div>
+            <div class="big">Insights & Call Log</div>
+            <div class="label">${totals.made}/${totals.total} complete • ${totals.answered} answered • ${totals.missed} missed</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            ${!isFinished() ? `<button id="btn-continue" class="btn-add">Continue Calling</button>` : ``}
+            <a id="btn-return" class="btn-glass" href="#/calls">Return to Calls</a>
+          </div>
+        </div>
+
+        <div id="sum-left"  class="card" style="grid-column:span 6;"></div>
+        <div id="sum-right" class="card" style="grid-column:span 6;"></div>
+      </div>
+    `;
+    const left  = wrap.querySelector('#sum-left');
+    const right = wrap.querySelector('#sum-right');
+
+    // Left: Insights
+    renderCampaignInsights(left, { progressRows });
+
+    // Right: Filterable table + create-campaign-from-filter + call buttons
+    renderCampaignSummaryTable(right, {
+      progressRows,
+      contactsById,
+      campaignId: campaign_id,
+      onRecall: (contact_id) => {
+        // Optional jump back to this contact if user continues calling
+        const ix = queue.findIndex(id => String(id) === String(contact_id));
+        if (ix >= 0) { index = ix; }
+        renderLive();
+      }
+    });
+
+    // Wire "Continue Calling" when not finished
+    const cont = wrap.querySelector('#btn-continue');
+    if (cont) {
+      cont.onclick = () => {
+        // Recompute pointer to first unattempted, just in case
+        if (queue.length) {
+          const firstUnattemptedIdx = queue.findIndex(id => {
+            const row = progressRows.find(r => String(r.contact_id) === String(id));
+            return !row || (row.attempts || 0) === 0;
+          });
+          index = firstUnattemptedIdx >= 0 ? firstUnattemptedIdx : 0;
+        }
+        renderLive();
+      };
+    }
+  }
+
+
+  /* ------------------------------ Live Calling UI ------------------------------ */
+  function renderLive() {
+    wrap.innerHTML = '';
+
+    // Progress header
     const header = div('');
     const pWrap = div('progressWrap');
     const pBar  = div('progressBar');
@@ -183,15 +250,12 @@ export default async function CallExecution(root) {
     header.appendChild(pWrap);
     wrap.appendChild(header);
 
-    if (!queue.length) {
-      return renderSummary();
-    }
+    // If there’s truly nothing (edge case), go back to summary
+    if (!queue.length) return renderSummary();
 
     const c = currentContact();
-    if (!c) {
-      return renderSummary();
-    }
-
+    // If all done or pointer is beyond the last contact, show summary
+    if (!c || isFinished()) return renderSummary();
 
     // Contact header (name + phone pill)
     const name = String(c.contact_first || c.first_name || c.full_name || `${c.contact_first||''} ${c.contact_last||''}`.trim() || 'Contact').trim();
@@ -211,7 +275,7 @@ export default async function CallExecution(root) {
     head.append(title, pillWrap);
     wrap.append(head);
 
-    // Contact info (prettified, non-null only)
+    // Contact info
     const infoCard = renderContactInfo(c);
     wrap.append(infoCard);
 
@@ -220,7 +284,7 @@ export default async function CallExecution(root) {
     renderInteractions(historyCard, { contact_id: c.contact_id, campaign_id });
     wrap.append(historyCard);
 
-    // Survey + Notes (clickable pills for survey options, and notes textarea)
+    // Survey + Notes
     dc = createDataCollection({
       campaign_id,
       contact_id: c.contact_id
@@ -228,12 +292,10 @@ export default async function CallExecution(root) {
     wrap.append(dc.node);
 
     // Tasks
-    const tasks = renderTasks({
-      contact: c
-    });
+    const tasks = renderTasks({ contact: c });
     wrap.append(tasks);
 
-    // Outcome buttons (save outcome + response + notes, then advance)
+    // Outcome buttons
     const actions = div('actions');
     actions.style.display = 'flex';
     actions.style.gap = '8px';
@@ -247,33 +309,6 @@ export default async function CallExecution(root) {
     wrap.append(actions);
   }
 
-
-  /* --------------------------- Summary Screen --------------------------- */
-  function renderSummary() {
-    wrap.innerHTML = `
-      <div class="cards" style="align-items:flex-start">
-        <div id="sum-left"  class="card" style="grid-column:span 6;"></div>
-        <div id="sum-right" class="card" style="grid-column:span 6;"></div>
-      </div>
-    `;
-    const left  = wrap.querySelector('#sum-left');
-    const right = wrap.querySelector('#sum-right');
-
-    // Left: Insights (counts + bar charts) – uses Chart.js styles similar to your earlier insights
-    renderCampaignInsights(left, { progressRows });
-
-    // Right: Filterable table + create-campaign-from-filter + per-row Call buttons
-    renderCampaignSummaryTable(right, {
-      progressRows,
-      contactsById,
-      campaignId: campaign_id,
-      onRecall: (contact_id) => {
-        // Optional: jump back to this contact in the live UI
-        const ix = queue.findIndex(id => String(id) === String(contact_id));
-        if (ix >= 0) { index = ix; render(); }
-      }
-    });
-  }
 
 
   /* -------------------------- Navigation -------------------------- */
@@ -289,6 +324,7 @@ export default async function CallExecution(root) {
       renderSummary();
     }
   }
+
 
 
   /* ------------------------- Persist outcome ---------------------- */
