@@ -66,10 +66,16 @@ const routes = {
     return module.default(root);
   },
 
+  // contacts
+  '#/contacts': async (root) => {
+    const module = await import(`${BASE}/screens/contacts.js`);
+    return module.default(root);
+  },
+
   // Stubs
   // '#/tasks': (root) => showPlaceholder(root, 'Tasks'),
   '#/insights': (root) => showPlaceholder(root, 'Insights'),
-  '#/contacts': (root) => showPlaceholder(root, 'Contacts'),
+  //'#/contacts': (root) => showPlaceholder(root, 'Contacts'),
 };
 
 const DEFAULT_ROUTE = '#/dashboard';
