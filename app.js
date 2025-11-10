@@ -1,9 +1,21 @@
+// app.js (ES module)
+
 // Compute a repo-agnostic base like "/ReachPoint-general"
 const BASE = location.pathname
   .replace(/\/index\.html$/, '')
   .replace(/\/$/, '');
 
-// Simple hash router with a mount pattern.
+// Ensure Supabase client is available (in case index.html didn't import it first)
+let supabase = globalThis.supabase;
+if (!supabase) {
+  const mod = await import(`${BASE}/supabaseClient.js`);
+  supabase = mod?.supabase || globalThis.supabase;
+  if (!supabase) {
+    throw new Error('Supabase client failed to load');
+  }
+}
+
+// ---- Routes ----
 const routes = {
   '#/dashboard': async (root) => {
     const module = await import(`${BASE}/screens/dashboard.js`);
@@ -42,6 +54,12 @@ const routes = {
     return module.default(root);
   },
 
+  // Auth
+  '#/signin': async (root) => {
+    const module = await import(`${BASE}/screens/signin.js`);
+    return module.default(root);
+  },
+
   // Stubs
   '#/tasks': (root) => showPlaceholder(root, 'Tasks'),
   '#/insights': (root) => showPlaceholder(root, 'Insights'),
@@ -66,9 +84,32 @@ async function renderRoute() {
   const hash = location.hash || DEFAULT_ROUTE;
   const base = hash.split('?')[0];
 
+  // Route exists?
   if (!routes[base]) {
     location.hash = DEFAULT_ROUTE;
     return;
+  }
+
+  // ---- Auth gate ----
+  // Only allow unauthenticated users on #/signin
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user && base !== '#/signin') {
+      location.hash = '#/signin';
+      return;
+    }
+    if (user && base === '#/signin') {
+      location.hash = '#/dashboard';
+      return;
+    }
+  } catch (e) {
+    console.warn('Auth check failed:', e);
+    // If auth check fails, send to signin (failsafe)
+    if (base !== '#/signin') {
+      location.hash = '#/signin';
+      return;
+    }
   }
 
   setActiveTab(hash);
@@ -81,6 +122,7 @@ async function renderRoute() {
     appRoot.innerHTML = `<div class="centered">There was an error loading this screen.</div>`;
   }
 
+  // Close mobile menu after navigating
   if (topbar?.classList.contains('open')) {
     topbar.classList.remove('open');
     menuBtn?.setAttribute('aria-expanded', 'false');
