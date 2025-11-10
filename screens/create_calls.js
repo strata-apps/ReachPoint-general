@@ -113,7 +113,7 @@ export default function CreateCalls(root) {
       const name = root.querySelector('#cc-name')?.value?.trim() || 'Untitled Campaign';
 
       // Selected contacts from current result list
-      const student_ids = Array.from(root.querySelectorAll('input[data-contact-id]:checked'))
+      const contact_ids  = Array.from(root.querySelectorAll('input[data-contact-id]:checked'))
         .map(b => b.getAttribute('data-contact-id'));
 
       // Clean Qs/Opts
@@ -128,7 +128,7 @@ export default function CreateCalls(root) {
         campaign_id,
         campaign_name: name,
         filters: filtersPayload,
-        student_ids,
+        contact_ids,
         dates: null,
         survey_questions: qs,
         survey_options: os,

@@ -98,7 +98,7 @@ export default function Calls(root) {
     const idShort = (c.campaign_id || '').toString().slice(0, 8);
     const qCount = Array.isArray(c.survey_questions) ? c.survey_questions.length : 0;
     const oCount = Array.isArray(c.survey_options) ? c.survey_options.length : 0;
-    const recipients = Array.isArray(c.student_ids) ? c.student_ids.length : (c.recipient_count ?? 0);
+    const recipients = Array.isArray(c.contact_ids) ? c.contact_ids.length : (c.recipient_count ?? 0);
     const updatedStr = formatRelative(c.updated_at);
     const createdStr = formatShortDate(c.created_at);
 
@@ -146,7 +146,7 @@ export default function Calls(root) {
         campaign_id: crypto.randomUUID(),
         campaign_name: 'STEM Night RSVPs',
         filters: { interest: 'STEM' },
-        student_ids: Array.from({ length: 92 }, () => crypto.randomUUID()),
+        contact_ids: Array.from({ length: 92 }, () => crypto.randomUUID()),
         dates: { start: '2025-11-01T19:00:00Z', end: '2025-11-08T19:00:00Z' },
         created_at: '2025-11-01T18:03:00Z',
         survey_questions: ['Can you attend this event?'],
@@ -157,7 +157,7 @@ export default function Calls(root) {
         campaign_id: crypto.randomUUID(),
         campaign_name: 'Fall Outreach — Seniors',
         filters: { grade: 12 },
-        student_ids: Array.from({ length: 180 }, () => crypto.randomUUID()),
+        contact_ids: Array.from({ length: 180 }, () => crypto.randomUUID()),
         dates: { start: '2025-10-12T17:00:00Z', end: '2025-11-20T17:00:00Z' },
         created_at: '2025-10-10T21:12:00Z',
         survey_questions: ['Will you attend tutoring?'],
