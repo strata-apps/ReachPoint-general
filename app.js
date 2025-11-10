@@ -1,41 +1,48 @@
-// Simple hash router with a mount pattern.
+// Compute a repo-agnostic base like "/ReachPoint-general"
+const BASE = location.pathname
+  .replace(/\/index\.html$/, '')
+  .replace(/\/$/, '');
 
+// Simple hash router with a mount pattern.
 const routes = {
   '#/dashboard': async (root) => {
-    const module = await import('/ReachPoint-general/screens/dashboard.js');
+    const module = await import(`${BASE}/screens/dashboard.js`);
     return module.default(root);
   },
 
   '#/calls': async (root) => {
-    const module = await import('/ReachPoint-general/screens/calls.js');
+    const module = await import(`${BASE}/screens/calls.js`);
     return module.default(root);
   },
 
   '#/create-calls': async (root) => {
-    const module = await import('/ReachPoint-general/screens/create_calls.js');
+    const module = await import(`${BASE}/screens/create_calls.js`);
     return module.default(root);
   },
 
+  // Workflow Designer
   '#/workflow': async (root) => {
-    const module = await import('/ReachPoint-general/screens/designworkflow.js');
+    const module = await import(`${BASE}/screens/designworkflow.js`);
     return module.default(root);
   },
 
+  // Email campaigns
   '#/emails': async (root) => {
-    const module = await import('/ReachPoint-general/screens/emails.js');
+    const module = await import(`${BASE}/screens/emails.js`);
     return module.default(root);
   },
 
   '#/create-emails': async (root) => {
-    const module = await import('/ReachPoint-general/screens/create_emails.js');
+    const module = await import(`${BASE}/screens/create_emails.js`);
     return module.default(root);
   },
 
   '#/call-execution': async (root) => {
-    const module = await import('/ReachPoint-general/screens/call_execution.js');
+    const module = await import(`${BASE}/screens/call_execution.js`);
     return module.default(root);
   },
 
+  // Stubs
   '#/tasks': (root) => showPlaceholder(root, 'Tasks'),
   '#/insights': (root) => showPlaceholder(root, 'Insights'),
   '#/contacts': (root) => showPlaceholder(root, 'Contacts'),
@@ -88,7 +95,7 @@ function showPlaceholder(root, title) {
         <div class="kicker">Coming soon</div>
         <div class="big" style="margin-bottom:6px">This screen is a stub</div>
         <p class="label" style="max-width:720px">
-          Create <code>/ReachPoint-general/screens/${title.toLowerCase().replace(' ', '-')}.js</code>
+          Create <code>${BASE}/screens/${title.toLowerCase().replace(' ', '-')}.js</code>
           and export <code>default (root) =&gt; { /* render */ }</code>.
         </p>
       </div>

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ReachPoint</title>
 
-    <!-- Important: use absolute path with repo folder -->
-    <link rel="stylesheet" href="/ReachPoint-general/styles.css" />
+    <!-- Stylesheet path stays relative to this file -->
+    <link rel="stylesheet" href="./styles.css" />
 
     <!-- Optional fonts -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -39,10 +39,16 @@
     <!-- App mount -->
     <main id="app" class="container" role="main"></main>
 
-    <!-- Load Supabase first, then app router -->
+    <!-- Load Supabase first, then app router, using a dynamic BASE -->
     <script type="module">
-      import '/ReachPoint-general/supabaseClient.js';
-      import '/ReachPoint-general/app.js';
+      // Compute a repo-agnostic base like "/ReachPoint-general" (or "" if served at root)
+      const BASE = location.pathname
+        .replace(/\/index\.html$/, '')
+        .replace(/\/$/, '');
+
+      // Load supabase client and the router relative to BASE
+      await import(`${BASE}/supabaseClient.js`);
+      await import(`${BASE}/app.js`);
     </script>
   </body>
 </html>
