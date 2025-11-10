@@ -234,19 +234,22 @@ export default function Emails(root) {
         </div>
         <div style="display:flex; align-items:flex-start; justify-content:flex-end; gap:8px;">
           <button class="btn" data-edit="${escapeHtml(c.campaign_id)}">Edit Campaign</button>
+          <button class="btn" data-editf="${escapeHtml(c.campaign_id)}">Edit Filters</button>
           <button class="btn" data-exec="${escapeHtml(c.campaign_id)}">Execute Campaign</button>
           <button class="btn-delete" data-del="${escapeHtml(c.campaign_id)}">Delete</button>
         </div>
       </div>
     `;
   }
-
+  
   async function onListClick(e) {
     const del  = e.target.closest('button[data-del]');
     const edit = e.target.closest('button[data-edit]');
+    const editf = e.target.closest('button[data-editf]');
     const exec = e.target.closest('button[data-exec]');
     if (del)  return doDelete(del.getAttribute('data-del'));
     if (edit) return doEdit(edit.getAttribute('data-edit'));
+    if (editf) return doEditFilters(editf.getAttribute('data-editf'));
     if (exec) return doExecute(exec.getAttribute('data-exec'));
   }
 
@@ -345,6 +348,151 @@ export default function Emails(root) {
     }
     log(`✅ Campaign executed: ${id} → sent=${sent}, failed=${fail}`);
   }
+
+  async function doEditFilters(id) {
+    if (!id) return;
+
+    // Load current campaign filters
+    const { data, error } = await supabase
+      .from('email_campaigns')
+      .select('campaign_subject, filters')
+      .eq('campaign_id', id)
+      .maybeSingle();
+    if (error) {
+      log('EditFilters load error: ' + error.message);
+      return alert('Failed to load campaign filters.');
+    }
+
+    const current = data || {};
+    const currentFilter = current.filters || null;
+
+    // Build a small modal
+    const { close, mount } = buildModal({
+      title: 'Edit Filters',
+      subtitle: current.campaign_subject ? `Campaign: ${current.campaign_subject}` : ''
+    });
+
+    // Add filter UI into modal body
+    const filterBox = document.createElement('div');
+    filterBox.className = 'latest-row';
+    filterBox.style.gap = '8px';
+    filterBox.style.flexWrap = 'wrap';
+    mount.body.appendChild(filterBox);
+
+    // Mount your backend-driven dropdowns
+    mountContactFilters(filterBox);
+
+    // Pre-select the existing filter (if present)
+    // Assumes filters.js creates selects with ids #cc-field and #cc-value
+    if (currentFilter && typeof currentFilter === 'object' && currentFilter.field) {
+      // set field
+      const fieldSel = filterBox.querySelector('#cc-field');
+      if (fieldSel) {
+        fieldSel.value = String(currentFilter.field);
+        // trigger population of the values select
+        fieldSel.dispatchEvent(new Event('change'));
+        // wait for values to load, then set selected value if available
+        await sleep(50);
+        const valSel = filterBox.querySelector('#cc-value');
+        if (valSel && currentFilter.value != null) {
+          // try to set directly; if not present yet, wait a tick and retry once
+          valSel.value = String(currentFilter.value);
+          if (valSel.value !== String(currentFilter.value)) {
+            await sleep(100);
+            valSel.value = String(currentFilter.value);
+          }
+        }
+      }
+    }
+
+    // Footer buttons
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-primary';
+    saveBtn.textContent = 'Save Filters';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn';
+    cancelBtn.textContent = 'Cancel';
+    mount.footer.append(cancelBtn, saveBtn);
+
+    cancelBtn.onclick = () => close();
+
+    saveBtn.onclick = async () => {
+      const newFilter = getSelectedFilter(filterBox);
+      if (!newFilter) {
+        alert('Please choose a contacts filter.');
+        return;
+      }
+      try {
+        saveBtn.disabled = true;
+        await updateCampaign(id, { filters: newFilter });
+        log('💾 Filters updated for campaign: ' + id);
+        close();
+        await refreshList();
+      } catch (e) {
+        saveBtn.disabled = false;
+        log('Update filters error: ' + (e?.message || e));
+        alert('Failed to update filters.');
+      }
+    };
+  }
+
+  /* ---------- Minimal modal helper ---------- */
+  function buildModal({ title = '', subtitle = '' } = {}) {
+    const wrap = document.createElement('div');
+    wrap.style.position = 'fixed';
+    wrap.style.inset = '0';
+    wrap.style.background = 'rgba(0,0,0,.28)';
+    wrap.style.zIndex = '9999';
+    wrap.style.display = 'flex';
+    wrap.style.alignItems = 'center';
+    wrap.style.justifyContent = 'center';
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.width = 'min(720px, 92vw)';
+    card.style.maxHeight = '80vh';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.padding = '16px';
+    card.style.gap = '10px';
+    card.style.overflow = 'hidden';
+
+    const head = document.createElement('div');
+    head.style.display = 'flex';
+    head.style.justifyContent = 'space-between';
+    head.style.alignItems = 'center';
+    const hTitle = document.createElement('div');
+    hTitle.innerHTML = `<div class="kicker">Filters</div><div class="big" style="margin-top:2px">${escapeHtml(title)}</div>`;
+    const hSub = subtitle ? `<div class="label" style="margin-top:4px">${escapeHtml(subtitle)}</div>` : '';
+    hTitle.innerHTML += hSub;
+
+    const x = document.createElement('button');
+    x.className = 'btn';
+    x.textContent = '✕';
+    x.onclick = () => close();
+
+    head.append(hTitle, x);
+
+    const body = document.createElement('div');
+    body.style.overflow = 'auto';
+    body.style.padding = '6px 2px';
+
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.justifyContent = 'flex-end';
+    footer.style.gap = '8px';
+    footer.style.marginTop = '8px';
+
+    card.append(head, body, footer);
+    wrap.append(card);
+    document.body.append(wrap);
+
+    function close() { wrap.remove(); }
+
+    return { close, mount: { body, footer } };
+  }
+
 
 
   function setStatus(card, text, color = '#1f2937') {
