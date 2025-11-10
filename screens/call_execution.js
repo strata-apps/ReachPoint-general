@@ -9,11 +9,16 @@ import { renderTasks } from '../functions/tasks_function.js';
 /* ------------------------- route helpers ------------------------- */
 function readCampaignId() {
   const h = String(location.hash || '');
-  // support both "#/execute/<id>" and "#/call-execution/<id>"
+  // 1) support "#/execute/<id>" and "#/call-execution/<id>"
   let m = h.match(/#\/execute\/([^/?#]+)/i);
   if (!m) m = h.match(/#\/call-execution\/([^/?#]+)/i);
-  return m ? decodeURIComponent(m[1]) : null;
+  if (m) return decodeURIComponent(m[1]);
+
+  // 2) also support "#/call-execution?campaign=<id>"
+  const qm = h.match(/[?&#]campaign=([^&#]+)/i);
+  return qm ? decodeURIComponent(qm[1]) : null;
 }
+
 
 /* ------------------------- tiny dom helpers ---------------------- */
 function el(tag, cls, text) {
@@ -88,38 +93,56 @@ export default async function CallExecution(root) {
       const s = window.supabase;
       if (!s) throw new Error('Supabase client not found');
 
-      // 1) Get all distinct contact_ids in this campaign from call_progress
+      // 1) Progress rows for this campaign
       const { data: prog, error: progErr } = await s
         .from('call_progress')
         .select('contact_id, outcome, attempts')
         .eq('campaign_id', campaign_id);
-
       if (progErr) throw progErr;
 
-      const idSet = new Set((prog||[]).map(r => String(r.contact_id)));
+      let idSet = new Set((prog || []).map(r => r.contact_id));
+
+      // 2) Fallback: if no progress yet, seed from call_campaigns.contact_ids
+      if (!idSet.size) {
+        const { data: cc, error: ccErr } = await s
+          .from('call_campaigns')
+          .select('contact_ids')
+          .eq('campaign_id', campaign_id)
+          .maybeSingle();
+        if (ccErr) throw ccErr;
+        if (cc?.contact_ids?.length) {
+          idSet = new Set(cc.contact_ids);
+        }
+      }
+
       queue = [...idSet];
 
-      // 2) Fetch contacts table rows
+      // 3) Fetch contacts (coerce types to match your schema)
       let rows = [];
       if (idSet.size) {
+        const ids = [...idSet].map(v => {
+          // If your contacts.contact_id is integer, coerce:
+          const n = Number(v);
+          return Number.isFinite(n) && String(n) === String(v) ? n : v; // keep string UUIDs as-is
+        });
+
         const { data: crows, error: cErr } = await s
           .from('contacts')
           .select('*')
-          .in('contact_id', [...idSet]);
+          .in('contact_id', ids);
         if (cErr) throw cErr;
         rows = crows || [];
       }
 
-      // 3) Bind contacts
       contacts = rows;
 
-      // 4) Totals (made/answered/missed) from call_progress
+      // 4) Totals
       const made = (prog||[]).filter(r => (r.attempts ?? 0) > 0).length;
       const answered = (prog||[]).filter(r => r.outcome === 'answered').length;
       const missed = (prog||[]).filter(r => r.outcome === 'no_answer').length;
       totals = { total: queue.length, made, answered, missed };
 
-      // Start at first unattempted, else first
+      // 5) Start pointer
       if (queue.length) {
         const firstUnattemptedIdx = queue.findIndex(id => {
           const row = (prog||[]).find(r => String(r.contact_id) === String(id));
@@ -134,6 +157,7 @@ export default async function CallExecution(root) {
       wrap.innerHTML = `<div class="card wide"><div class="label">Could not load campaign or contacts.</div></div>`;
     }
   }
+
 
   /* ------------------------------ Render ------------------------------ */
   function render() {
