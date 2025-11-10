@@ -110,7 +110,7 @@ export function renderTasks({ contact }) {
     }
   });
 
-  card.append(add);
+  card.append(add); 
   return card;
 }
 
