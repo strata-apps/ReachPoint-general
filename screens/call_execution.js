@@ -7,7 +7,6 @@ import { createDataCollection } from '../functions/data_collection.js';
 import { renderTasks } from '../functions/tasks_function.js';
 import { renderCampaignInsights } from '../functions/charts.js'; 
 import { renderCampaignSummaryTable } from '../functions/summary_table.js';
-import { upsertCampaignDraft } from '../functions/db.js'; 
 
 /* ------------------------- route helpers ------------------------- */
 function readCampaignId() {

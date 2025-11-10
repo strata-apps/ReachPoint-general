@@ -1,5 +1,5 @@
 // functions/summary_table.js
-import { upsertCampaignDraft } from './db.js';
+import { upsertCampaignDraft } from '../db.js';
 
 export function renderCampaignSummaryTable(mount, {
   progressRows = [],            // [{contact_id, outcome, response, notes, last_called_at}]
