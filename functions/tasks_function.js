@@ -1,10 +1,10 @@
 // functions/tasks_function.js
 // Enhanced task creator
-// Table: tasks(id, contact_id, text, active, user_id, created_at)
+// Table: tasks(id, contact_id, task_text, active, user_id, created_at)
 //
 // Modes:
 //  - With { contact }: creates a task for that single contact
-//  - Without contact: shows Filters UI (mountContactFilters) and inserts one task per matching contact
+//  - Without contact: shows Filters UI (mountContactFilters, getSelectedFilter) and inserts one task per matching contact
 //
 // Depends on: functions/filters.js (mountContactFilters, getSelectedFilter)
 
@@ -69,8 +69,8 @@ export function renderTasks({ contact }) {
   const add = el('button','btn','Add Task');
   add.style.marginTop = '10px';
   add.addEventListener('click', async () => {
-    const text = String(input.value || '').trim();
-    if (!text) { alert('Please enter a task description first.'); return; }
+    const task_text = String(input.value || '').trim();
+    if (!task_text) { alert('Please enter a task description first.'); return; }
 
     try {
       const s = window.supabase;
@@ -93,7 +93,7 @@ export function renderTasks({ contact }) {
 
       // Prepare rows (one per contact)
       const rows = targets.map(cid => ({
-        text,
+        task_text,
         active: true,
         user_id: user.id,
         contact_id: cid

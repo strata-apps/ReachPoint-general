@@ -102,7 +102,7 @@ export default async function TasksScreen(root) {
 
     const { data, error } = await s
       .from('tasks')
-      .select('id, text, active, created_at, contact_id')
+      .select('id, task_text, active, created_at, contact_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
