@@ -105,7 +105,7 @@ export default async function TasksScreen(root) {
     // Select with alias for "text" (reserved word) -> task_text
     const { data, error } = await s
       .from('tasks')
-      .select('id, task_text:text, active, created_at, contact_id')
+      .select('id, task_text, active, created_at, contact_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
