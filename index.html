@@ -5,28 +5,26 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ReachPoint</title>
 
-    <!-- Base styles (your liquid-glass theme, tabs, cards, etc.) -->
-    <link rel="stylesheet" href="./styles.css" />
+    <!-- Important: use absolute path with repo folder -->
+    <link rel="stylesheet" href="/ReachPoint-general/styles.css" />
 
-    <!-- Optional: Inter font (matches your design vibe) -->
+    <!-- Optional fonts -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
 
   <body>
-    <!-- Top navigation (sticky, glass) -->
+    <!-- Top navigation -->
     <header class="topbar" id="topbar">
       <nav class="topnav container">
         <div class="brand">
           <span class="brand-name">ReachPoint</span>
         </div>
 
-        <!-- Mobile menu button -->
         <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="top-tabs" aria-label="Open navigation">
           <span class="menu-lines"></span>
         </button>
 
-        <!-- Pills nav -->
         <ul class="tabs" id="top-tabs">
           <li><a data-route="#/dashboard" class="tab-link">Dashboard</a></li>
           <li><a data-route="#/calls" class="tab-link">Calls</a></li>
@@ -38,14 +36,13 @@
       </nav>
     </header>
 
-    <!-- Main mount point -->
+    <!-- App mount -->
     <main id="app" class="container" role="main"></main>
 
-    <!-- Load Supabase first, then the router/app -->
+    <!-- Load Supabase first, then app router -->
     <script type="module">
       import '/ReachPoint-general/supabaseClient.js';
       import '/ReachPoint-general/app.js';
     </script>
-
   </body>
 </html>

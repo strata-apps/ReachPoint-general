@@ -2,43 +2,40 @@
 
 const routes = {
   '#/dashboard': async (root) => {
-    const module = await import('./screens/dashboard.js');
+    const module = await import('/ReachPoint-general/screens/dashboard.js');
     return module.default(root);
   },
 
   '#/calls': async (root) => {
-    const module = await import('./screens/calls.js');
+    const module = await import('/ReachPoint-general/screens/calls.js');
     return module.default(root);
   },
 
   '#/create-calls': async (root) => {
-    const module = await import('./screens/create_calls.js');
+    const module = await import('/ReachPoint-general/screens/create_calls.js');
     return module.default(root);
   },
 
-  // ✅ Workflow Designer
   '#/workflow': async (root) => {
-    const module = await import('./screens/designworkflow.js');
+    const module = await import('/ReachPoint-general/screens/designworkflow.js');
     return module.default(root);
   },
 
-  // ✅ Email campaigns
   '#/emails': async (root) => {
-    const module = await import('./screens/emails.js');
+    const module = await import('/ReachPoint-general/screens/emails.js');
     return module.default(root);
   },
 
   '#/create-emails': async (root) => {
-    const module = await import('./screens/create_emails.js');
+    const module = await import('/ReachPoint-general/screens/create_emails.js');
     return module.default(root);
   },
 
   '#/call-execution': async (root) => {
-    const module = await import('./screens/call_execution.js');
+    const module = await import('/ReachPoint-general/screens/call_execution.js');
     return module.default(root);
   },
 
-  // ✅ Stubs (unique keys, no duplicates)
   '#/tasks': (root) => showPlaceholder(root, 'Tasks'),
   '#/insights': (root) => showPlaceholder(root, 'Insights'),
   '#/contacts': (root) => showPlaceholder(root, 'Contacts'),
@@ -51,7 +48,7 @@ const menuBtn = document.getElementById('menu-btn');
 
 function setActiveTab(hash) {
   const links = document.querySelectorAll('.tab-link');
-  const base = hash.split('?')[0]; // strip query
+  const base = hash.split('?')[0];
   links.forEach((a) => {
     const route = a.getAttribute('data-route');
     a.classList.toggle('active', route === base);
@@ -77,7 +74,6 @@ async function renderRoute() {
     appRoot.innerHTML = `<div class="centered">There was an error loading this screen.</div>`;
   }
 
-  // Close mobile menu after navigating
   if (topbar?.classList.contains('open')) {
     topbar.classList.remove('open');
     menuBtn?.setAttribute('aria-expanded', 'false');
@@ -92,7 +88,7 @@ function showPlaceholder(root, title) {
         <div class="kicker">Coming soon</div>
         <div class="big" style="margin-bottom:6px">This screen is a stub</div>
         <p class="label" style="max-width:720px">
-          Create <code>./screens/${title.toLowerCase().replace(' ', '-')}.js</code>
+          Create <code>/ReachPoint-general/screens/${title.toLowerCase().replace(' ', '-')}.js</code>
           and export <code>default (root) =&gt; { /* render */ }</code>.
         </p>
       </div>
