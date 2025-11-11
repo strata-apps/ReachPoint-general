@@ -2,7 +2,7 @@
 // Task list & creation screen
 // - Lists tasks for the signed-in user (public.tasks)
 // - "Complete" deletes the row
-// - Task creator is hidden until "Create New Task" is clicked
+// - Task creator now opens in a modal, matching the Events screen layout
 // - Shows contact name (first + last) instead of raw contact_id
 
 import renderTasks from '../functions/tasks_function.js';
@@ -30,11 +30,28 @@ export default async function TasksScreen(root) {
   };
   const div = (attrs, ...kids) => el('div', attrs, ...kids);
 
+  // ---- Page head ----
   const head = div('page-head',
     el('h1', { class: 'page-title' }, 'Tasks'),
     el('div', { class: 'label' }, 'Create and manage your tasks.')
   );
 
+  // ---- Header card matching Events (title + primary button) ----
+  // (Mirrors events.js header with "New Event" → "New Task")
+  const headerCard = div({ class: 'card', style: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '12px', flexWrap: 'wrap'
+  }},
+    div(null,
+      el('div', { class: 'kicker' }, 'Tasks'),
+      el('div', { class: 'label' }, 'Create tasks and assign them to contacts.')
+    ),
+    div(null,
+      el('button', { class: 'btn-primary', id: 'btnOpenNewTask' }, 'New Task')
+    )
+  );
+
+  // ---- List card ----
   const listCard = div('card',
     el('div', { class: 'kicker' }, 'Your Tasks'),
     el('div', { class: 'big' }, 'Open Tasks'),
@@ -43,50 +60,75 @@ export default async function TasksScreen(root) {
   const listWrap = el('div', { style: { marginTop: '10px' } });
   listCard.appendChild(listWrap);
 
-  // Creator card with toggle button; creator body stays hidden until clicked
-  const createCard = div('card',
-    el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' } },
-      div(null,
-        el('div', { class: 'kicker' }, 'Create'),
-        el('div', { class: 'big' }, 'New Task')
-      ),
-      el('div', null,
-        el('button', { id: 'btnToggleCreator', class: 'btn' }, 'Create New Task')
-      )
-    ),
-    el('div', { class: 'label', style: { marginTop: '6px' } }, 'Assign to one or many contacts via filters.')
-  );
-  const creatorMount = el('div', { id: 'creatorMount', style: { display: 'none', marginTop: '12px' } });
-  createCard.appendChild(creatorMount);
-
+  // ---- Status / log ----
   const logCard = div('card',
     el('div', { class: 'kicker' }, 'Status'),
     el('pre', { id: 'log', class: 'label', style: { whiteSpace: 'pre-wrap', margin: 0 } }, 'Ready.')
   );
 
-  root.append(head, listCard, createCard, logCard);
+  root.append(head, headerCard, listCard, logCard);
 
-  // Toggle mount of the task creator
-  const btnToggle = createCard.querySelector('#btnToggleCreator');
-  let creatorMounted = false;
-  btnToggle.onclick = () => {
-    if (creatorMount.style.display === 'none') {
-      if (!creatorMounted) {
-        creatorMount.appendChild(renderTasks({ contact: null }));
-        creatorMounted = true;
-      }
-      creatorMount.style.display = '';
-      btnToggle.textContent = 'Close';
-    } else {
-      creatorMount.style.display = 'none';
-      btnToggle.textContent = 'Create New Task';
-    }
-  };
+  // Wire "New Task" → open modal that hosts renderTasks (keeps all your logic)
+  document.getElementById('btnOpenNewTask')?.addEventListener('click', openCreateTaskModal);
 
   // Load + render list
   await renderList();
 
-  /* -------------------- Functions -------------------- */
+  /* -------------------- Creator Modal (styled like Events) -------------------- */
+  function openCreateTaskModal() {
+    const { close, body, footer, titleEl } = buildModal('Create Task');
+    titleEl.appendChild(el('div', 'label', 'Assign to one or many contacts via filters.'));
+
+    // Mount your existing creator UI inside the modal body.
+    // This preserves all creation behavior & data handling you already implemented.
+    const creatorHost = div({ style: { marginTop: '8px' } });
+    body.appendChild(creatorHost);
+    creatorHost.appendChild(renderTasks({ contact: null }));
+
+    // Footer actions
+    const closeBtn = el('button', { class: 'btn' }, 'Close');
+    closeBtn.onclick = () => close();
+    footer.append(closeBtn);
+  }
+
+  // Modal structure borrowed to match Events screen look & feel
+  function buildModal(title) {
+    const wrap = el('div', { style: {
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.28)', zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }});
+    const card = el('div', { class: 'card', style: {
+      width: 'min(860px, 94vw)', maxHeight: '82vh', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', background: '#fff',
+      borderRadius: '14px', border: '1px solid #e5e7eb', boxShadow: '0 10px 30px rgba(2,6,23,.18)'
+    }});
+    const head = el('div', { style: {
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '12px 14px', borderBottom: '1px solid #eef2f7'
+    }},
+      div(null,
+        el('div', 'kicker', 'Tasks'),
+        el('div', { style: { fontWeight: '800', fontSize: '18px' } }, title)
+      ),
+      el('button', { class: 'btn', onclick: () => close() }, '✕')
+    );
+    const body = el('div', { style: { padding: '12px 14px', overflow: 'auto', flex: '1' } });
+    const footer = el('div', { style: {
+      padding: '10px 14px', borderTop: '1px solid #eef2f7',
+      display: 'flex', justifyContent: 'flex-end', gap: '8px'
+    }});
+
+    card.append(head, body, footer);
+    wrap.append(card);
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+    document.body.appendChild(wrap);
+
+    function close() { wrap.remove(); }
+    const titleEl = head.querySelector('div > div:nth-child(2)') || head;
+    return { close, body, footer, titleEl };
+  }
+
+  /* -------------------- List Rendering -------------------- */
 
   async function renderList() {
     listWrap.innerHTML = '';
@@ -102,7 +144,6 @@ export default async function TasksScreen(root) {
       return;
     }
 
-    // Select with alias for "text" (reserved word) -> task_text
     const { data, error } = await s
       .from('tasks')
       .select('id, task_text, active, created_at, contact_id')
@@ -120,11 +161,11 @@ export default async function TasksScreen(root) {
       return;
     }
 
-    // Build a map of contact_id -> "First Last"
+    // Build contact_id -> "First Last"
     const idSet = new Set(data.map(r => r.contact_id).filter(v => v != null));
     const contactNameMap = await fetchContactNames([...idSet]); // { contact_id: "First Last" }
 
-    // Table
+    // Table (unchanged functionality)
     const table = el('table', { class: 'table', style: { width: '100%', borderCollapse: 'collapse' } });
     table.innerHTML = `
       <thead>
