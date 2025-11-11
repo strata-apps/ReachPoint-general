@@ -82,19 +82,55 @@ export default async function ContactsScreen(root) {
     el('div', { class: 'big' }, 'Contacts Table'),
     el('div', { class: 'label', style: { marginTop: '6px' } }, 'Click a first name to call or edit.')
   );
-  const listWrap = el('div', { 
-    style: { 
-        marginTop: '10px',
-        maxHeight: '65vh',
-        overflowY: 'auto',
-        overflowX: 'auto',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '4px'
-    } 
+  // Outer wrapper with scroll buttons
+    const listWrap = el('div', { style: {
+      position: 'relative',
+      marginTop: '10px'
+    }});
+
+  // Scrollable container
+  const scrollBox = el('div', {
+    style: {
+      maxHeight: '65vh',
+      overflowY: 'auto',
+      overflowX: 'auto',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      padding: '4px',
+      scrollBehavior: 'smooth'
+    }
   });
 
-  listCard.appendChild(listWrap);
+  // Add left/right scroll buttons
+  const leftBtn = el('button', {
+    class: 'btn',
+    style: {
+      position: 'absolute',
+      left: '5px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 10,
+      opacity: 0.85
+    },
+    onclick: () => scrollBox.scrollBy({ left: -300, behavior: 'smooth' })
+  }, '⟨');
+
+  const rightBtn = el('button', {
+    class: 'btn',
+    style: {
+      position: 'absolute',
+      right: '5px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 10,
+      opacity: 0.85
+    },
+    onclick: () => scrollBox.scrollBy({ left: 300, behavior: 'smooth' })
+  }, '⟩');
+
+  // Assemble
+  listWrap.append(leftBtn, scrollBox, rightBtn);
+
 
   const logCard = div('card',
     el('div', { class: 'kicker' }, 'Status'),
@@ -219,7 +255,7 @@ export default async function ContactsScreen(root) {
       tbody.appendChild(tr);
     }
 
-    listWrap.appendChild(table);
+    scrollBox.appendChild(table);
 
   }
 
