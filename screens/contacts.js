@@ -158,7 +158,7 @@ export default async function ContactsScreen(root) {
     scrollBox.innerHTML = '';
     const s = window.supabase;
     if (!s?.from) {
-      listWrap.appendChild(div('label', 'Supabase client not available.'));
+      scrollBox.appendChild(div('label', 'Supabase client not available.'));
       return;
     }
 
@@ -182,14 +182,19 @@ export default async function ContactsScreen(root) {
     const { data, error } = await query.limit(2000);
     if (error) {
       log('Load error: ' + error.message);
-      listWrap.appendChild(div('label', 'Error loading contacts.'));
+      const msg = div(null,
+        div('label', 'Error loading contacts.'),
+        div('label', 'Details: ' + (error.message || 'Unknown'))
+      );
+      scrollBox.appendChild(msg);
       return;
     }
+
 
     currentRows = data || [];
 
     if (!currentRows.length) {
-      listWrap.appendChild(div('label', 'No contacts match your filter.'));
+      scrollBox.appendChild(div('label', 'No contacts match your filter.'));
       return;
     }
 
