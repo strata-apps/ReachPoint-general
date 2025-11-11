@@ -122,12 +122,10 @@ export default function Dashboard(root) {
         </div>
 
         <div class="card wide">
-          <div class="kicker">Quick Links</div>
           <div class="latest-row" style="gap:8px;flex-wrap:wrap">
             <a class="btn" href="#/calls">Open Call Campaigns</a>
             <a class="btn" href="#/create-calls">Create Call Campaign</a>
           </div>
-          <p class="label" style="margin-top:8px">Manage campaigns and start calling from the Calls tab.</p>
         </div>
       </div>
     `;
@@ -155,11 +153,9 @@ export default function Dashboard(root) {
         </div>
 
         <div class="card wide">
-          <div class="kicker">Quick Links</div>
           <div class="latest-row" style="gap:8px;flex-wrap:wrap">
             <a class="btn" href="#/emails">Open Email Campaigns</a>
           </div>
-          <p class="label" style="margin-top:8px">Create, edit, and execute newsletters from the Emails tab.</p>
         </div>
       </div>
     `;
@@ -191,11 +187,9 @@ export default function Dashboard(root) {
         </div>
 
         <div class="card wide">
-          <div class="kicker">Quick Links</div>
           <div class="latest-row" style="gap:8px;flex-wrap:wrap">
             <a class="btn" href="#/tasks">Open Tasks</a>
           </div>
-          <p class="label" style="margin-top:8px">Create, assign, and complete tasks from the Tasks tab.</p>
         </div>
       </div>
     `;
