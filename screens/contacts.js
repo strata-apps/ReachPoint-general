@@ -82,7 +82,18 @@ export default async function ContactsScreen(root) {
     el('div', { class: 'big' }, 'Contacts Table'),
     el('div', { class: 'label', style: { marginTop: '6px' } }, 'Click a first name to call or edit.')
   );
-  const listWrap = el('div', { style: { marginTop: '10px' } });
+  const listWrap = el('div', { 
+    style: { 
+        marginTop: '10px',
+        maxHeight: '65vh',
+        overflowY: 'auto',
+        overflowX: 'auto',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '4px'
+    } 
+  });
+
   listCard.appendChild(listWrap);
 
   const logCard = div('card',
