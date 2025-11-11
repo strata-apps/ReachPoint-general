@@ -130,6 +130,8 @@ export default async function ContactsScreen(root) {
 
   // Assemble
   listWrap.append(leftBtn, scrollBox, rightBtn);
+  listCard.appendChild(listWrap);
+
 
 
   const logCard = div('card',
@@ -153,7 +155,7 @@ export default async function ContactsScreen(root) {
   await renderList();
 
   async function renderList() {
-    listWrap.innerHTML = '';
+    scrollBox.innerHTML = '';
     const s = window.supabase;
     if (!s?.from) {
       listWrap.appendChild(div('label', 'Supabase client not available.'));
