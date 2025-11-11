@@ -496,3 +496,65 @@ body {
 .btn.btn--signed:hover { opacity: .95; }
 
 
+/* ======================================================
+   Basic Button Style (for other buttons)
+   ====================================================== */
+
+   /* ----------------------------------------------------
+   UNIVERSAL BUTTON UPGRADE — MINI-BTN STYLE APPLIED 
+   ---------------------------------------------------- */
+
+/* Base styling for all normal buttons */
+.btn,
+button.btn {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  text-decoration: none;
+  color: #0f172a;
+  transition: 0.25s ease;
+}
+
+.btn:hover,
+button.btn:hover {
+  transform: translateY(-2px);
+  background: #f8fafc;
+}
+
+/* Primary buttons keep their green/blue backgrounds but inherit shape + font */
+.btn-primary,
+button.btn-primary {
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  padding: 8px 16px;
+  transition: 0.25s ease;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+/* Delete buttons: keep red but match mini-btn shape/weight */
+.btn-delete,
+button.btn-delete {
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  padding: 8px 14px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  transition: 0.25s ease;
+}
+
+.btn-delete:hover,
+button.btn-delete:hover {
+  transform: translateY(-2px);
+  background: #fecaca;
+}
