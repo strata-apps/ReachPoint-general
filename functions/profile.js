@@ -157,7 +157,7 @@ export function openProfileModal(contact) {
     );
 
     // Load events where contact_id is included in contact_ids JSON array
-      const contactId = String(contact.contact_id);
+    const contactId = String(contact.contact_id);
 
     const { data, error } = await sup()
       .from('events')
