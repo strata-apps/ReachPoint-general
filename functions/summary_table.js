@@ -142,30 +142,61 @@ export function renderCampaignSummaryTable(
   mount.querySelector('#flt-notes').onchange    = (e)=>{ state.filters.notes     = e.target.value; renderBody(); };
 
   // Create campaign from filtered subset (uses filtered rows’ contact_ids)
+  // Create campaign from filtered subset (uses filtered rows’ contact_ids)
   mount.querySelector('#mk-campaign').onclick = async () => {
     const name = mount.querySelector('#new-camp-name').value.trim() || 'Follow-up Campaign';
     const subset = applyFilters().map(r => r.contact_id);
-    if (!subset.length) { alert('No filtered rows to seed a new campaign.'); return; }
+
+    if (!subset.length) {
+      alert('No filtered rows to seed a new campaign.');
+      return;
+    }
 
     try {
       const campaign_id = crypto.randomUUID();
+
+      // 1) Try to pull survey + workflow from the source campaign (if provided)
+      let survey_questions = [];
+      let survey_options   = [];
+      let workflow         = null;
+      let dates            = null;
+
+      if (campaignId) {
+        const { data: src, error: srcErr } = await window.supabase
+          .from('call_campaigns')
+          .select('survey_questions, survey_options, workflow, dates')
+          .eq('campaign_id', campaignId)
+          .maybeSingle();
+
+        if (!srcErr && src) {
+          // Preserve exactly as stored
+          survey_questions = Array.isArray(src.survey_questions) ? src.survey_questions : [];
+          survey_options   = Array.isArray(src.survey_options)   ? src.survey_options   : [];
+          workflow         = src.workflow ?? null;
+          dates            = src.dates ?? null;
+        }
+      }
+
+      // 2) Upsert the new campaign draft with copied config + filtered contacts
       await upsertCampaignDraft({
         campaign_id,
         campaign_name: name,
-        contact_ids: subset,
-        dates: null,
-        survey_questions: [],
-        survey_options: [],
-        workflow: null,
+        contact_ids: Array.from(new Set(subset)), // dedupe, keep as array
+        dates,
+        survey_questions,
+        survey_options,
+        workflow,
       });
+
       alert('New campaign created!');
-      // optional: route somewhere afterwards
-      // location.hash = `#/workflow?campaign=${encodeURIComponent(campaign_id)}`;
+      // optional: navigate to builder for the new campaign
+      // location.hash = `#/create_calls?campaign=${encodeURIComponent(campaign_id)}`;
     } catch (e) {
       console.error('[summary_table] failed to create campaign', e);
       alert('Could not create campaign from selection.');
     }
   };
+
 
   renderBody();
 }
