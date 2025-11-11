@@ -217,9 +217,25 @@ menuBtn?.addEventListener('click', () => {
 
 // Route on initial load + on hash change
 window.addEventListener('hashchange', renderRoute);
-window.addEventListener('DOMContentLoaded', () => {
+
+// 1) If the document is already loaded, render immediately.
+//    Otherwise, wait for DOMContentLoaded.
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!location.hash) location.hash = DEFAULT_ROUTE;
+    renderRoute();
+  });
+} else {
   if (!location.hash) location.hash = DEFAULT_ROUTE;
   renderRoute();
+}
+
+// 2) Handle back-forward cache (Safari/Firefox/Chrome bfcache)
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    // Page restored from bfcache: ensure the current route is mounted
+    renderRoute();
+  }
 });
 
 // Log out button
