@@ -156,12 +156,16 @@ export function openProfileModal(contact) {
       el('div', 'label', 'Events this contact has attended.')
     );
 
-    // Load events where contact_id is included in events.contact_ids (JSON array)
+    // Load events where contact_id is included in contact_ids JSON array
+    const contactId = String(contact.contact_id);
+    const rhs = JSON.stringify([contactId]);   // forces ["uuid"] instead of {uuid}
+
     const { data, error } = await sup()
       .from('events')
       .select('event_name, event_date, contact_ids')
-      .contains('contact_ids', [contact.contact_id]) // requires JSON array storage of IDs
+      .filter('contact_ids', 'cs', rhs)        // always produces contact_ids=cs.["uuid"]
       .order('event_date', { ascending: false });
+
 
     if (error) {
       sections.attendance.append(el('div', 'label', 'Error loading attendance.'));
