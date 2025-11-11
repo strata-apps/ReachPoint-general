@@ -158,13 +158,13 @@ export function openProfileModal(contact) {
 
     // Load events where contact_id is included in contact_ids JSON array
     const contactId = String(contact.contact_id);
+    const rhs = `["${contactId}"]`;  // <- forces array on the wire
 
     const { data, error } = await sup()
       .from('events')
       .select('event_name, event_date, contact_ids')
-      .contains('contact_ids', [contactId])    // <-- rely on normalized JSON arrays
+      .filter('contact_ids', 'cs', rhs)   // -> contact_ids=cs.["uuid"]
       .order('event_date', { ascending: false });
-
 
 
     if (error) {
