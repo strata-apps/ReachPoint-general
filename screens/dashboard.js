@@ -28,6 +28,10 @@ export default function Dashboard(root) {
     </div>
   `;
 
+  // Define before any renderer runs (function declarations are hoisted)
+  function sup() { return window.supabase; }
+
+
   // Default tab
   setActive("Call Campaigns");
   renderCallCampaigns();
@@ -71,7 +75,7 @@ export default function Dashboard(root) {
     return `${days}d ago`;
   };
   const escapeHtml = (s='') => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const sup = () => globalThis.supabase;
+  //const sup = () => globalThis.supabase;
 
   // Reuse Calls screen’s "active" definition (dates.end >= now or missing). :contentReference[oaicite:4]{index=4}
   function isActive(c, now = new Date()) {
