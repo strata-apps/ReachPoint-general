@@ -50,8 +50,14 @@ const routes = {
   },
 
   // Workflow Designer
-  '#/workflow': async (root) => {
+  '#/design-workflow': async (root) => {
     const module = await import(`${BASE}/screens/designworkflow.js`);
+    return module.default(root);
+  },
+
+  // Workflow Screen
+  '#/workflow': async (root) => {
+    const module = await import(`${BASE}/screens/workflow.js`);
     return module.default(root);
   },
 

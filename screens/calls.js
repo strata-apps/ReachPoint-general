@@ -41,7 +41,7 @@ export default function Calls(root) {
 
   function renderCampaigns(list) {
     const mount = root.querySelector('#calls-list');
-    if (!mount) return; // guard against missing container
+    if (!mount) return;
 
     if (!list.length) {
       mount.innerHTML = `
@@ -57,7 +57,6 @@ export default function Calls(root) {
 
     mount.innerHTML = list.map(renderWideCard).join('');
 
-    // 🔁 All click handling stays scoped here so `mount` exists
     mount.onclick = async (e) => {
       // Start Calling
       const start = e.target.closest('[data-start]');
@@ -67,11 +66,14 @@ export default function Calls(root) {
         return;
       }
 
-      // Edit Workflow
+      // Edit Workflow → go to new workflow.js screen
       const wf = e.target.closest('[data-workflow]');
       if (wf) {
         const id = wf.getAttribute('data-workflow');
-        if (id) location.hash = `#/workflow?campaign=${encodeURIComponent(id)}`;
+        if (id) {
+          // Query param "campaign" is used by workflow.js to load the correct row
+          location.hash = `#/workflow?campaign=${encodeURIComponent(id)}`;
+        }
         return;
       }
 
@@ -134,12 +136,14 @@ export default function Calls(root) {
         .from('call_campaigns')
         .select('*')
         .order('updated_at', { ascending: false });
+
       if (!error && Array.isArray(data)) {
         const now = new Date();
         const act = data.filter((c) => isActive(c, now));
         return { campaigns: data, activeCampaigns: act };
       }
     }
+
     // demo fallback
     const demo = [
       {
@@ -150,7 +154,7 @@ export default function Calls(root) {
         dates: { start: '2025-11-01T19:00:00Z', end: '2025-11-08T19:00:00Z' },
         created_at: '2025-11-01T18:03:00Z',
         survey_questions: ['Can you attend this event?'],
-        survey_options: ['Yes','No','Maybe'],
+        survey_options: ['Yes', 'No', 'Maybe'],
         updated_at: '2025-11-07T22:17:00Z',
       },
       {
@@ -161,7 +165,7 @@ export default function Calls(root) {
         dates: { start: '2025-10-12T17:00:00Z', end: '2025-11-20T17:00:00Z' },
         created_at: '2025-10-10T21:12:00Z',
         survey_questions: ['Will you attend tutoring?'],
-        survey_options: ['Yes','No','Maybe'],
+        survey_options: ['Yes', 'No', 'Maybe'],
         updated_at: '2025-11-05T19:44:00Z',
       },
     ];
@@ -181,13 +185,16 @@ export default function Calls(root) {
         .select('*', { count: 'exact', head: true });
       if (!error && Number.isFinite(count)) return count;
     }
-    return 92 + 180; // demo
+    return 92 + 180;
   }
 
   async function deleteCampaign(campaignId) {
     if (!campaignId) return false;
     if (globalThis.supabase?.from) {
-      const { error } = await supabase.from('call_campaigns').delete().eq('campaign_id', campaignId);
+      const { error } = await supabase
+        .from('call_campaigns')
+        .delete()
+        .eq('campaign_id', campaignId);
       return !error;
     }
     return true;
@@ -196,7 +203,8 @@ export default function Calls(root) {
 
 function formatShortDate(iso) {
   const d = new Date(iso);
-  return Number.isNaN(d) ? '—' : d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  return Number.isNaN(d) ? '—'
+    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 function formatRelative(iso) {
   const d = new Date(iso); if (Number.isNaN(d)) return '—';
@@ -207,4 +215,8 @@ function formatRelative(iso) {
   const days = Math.round(hrs / 24);
   return `${days}d ago`;
 }
-function escapeHtml(s=''){return s.replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function escapeHtml(s = '') {
+  return s.replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[m]));
+}
