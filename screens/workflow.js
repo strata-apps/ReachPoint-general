@@ -24,6 +24,8 @@ export default function Workflow(root) {
   // ---- State ----------------------------------------------------------------
   let events = []; // will be loaded from call_campaigns.workflow.events
   let lastChosenFilters = { outcomes: 'all', responses: 'all' };
+  let workflowWasString = false;
+
 
   function defaultEvents() {
     return [
@@ -205,11 +207,25 @@ export default function Workflow(root) {
       campaign_name = data.campaign_name || campaign_id;
       if (campaignEl) campaignEl.textContent = campaign_name;
 
-      const wf = data.workflow || {};
-      if (wf && typeof wf === 'object') {
+      // workflow column is TEXT → parse if string
+      let wf = data.workflow;
+
+      workflowWasString = (typeof wf === "string");
+
+      if (typeof wf === "string") {
+        try {
+          wf = JSON.parse(wf);
+        } catch (e) {
+          console.warn("Could not parse workflow JSON string:", e, wf);
+          wf = null;
+        }
+      }
+
+      if (wf && typeof wf === "object") {
         if (Array.isArray(wf.events)) events = wf.events;
         if (wf.filters) lastChosenFilters = wf.filters;
       }
+
 
       if (!events || !events.length) {
         events = defaultEvents();
@@ -411,14 +427,20 @@ export default function Workflow(root) {
       return;
     }
 
-    const payload = {
-      workflow: {
+    const workflowPayload = {
         events,
         filters: lastChosenFilters,
         saved_at: new Date().toISOString(),
-      },
-      updated_at: new Date().toISOString(),
     };
+
+    // Save as TEXT if it originally came as text
+    const payload = {
+        workflow: workflowWasString
+            ? JSON.stringify(workflowPayload)
+            : workflowPayload,
+        updated_at: new Date().toISOString(),
+    };
+
 
     if (globalThis.supabase?.from) {
       try {
