@@ -21,7 +21,6 @@ function readCampaignId() {
   return qm ? decodeURIComponent(qm[1]) : null;
 }
 
-
 /* ------------------------- tiny dom helpers ---------------------- */
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -42,6 +41,38 @@ function telHref(raw) {
 function humanPhone(raw) {
   const d = String(raw||'').replace(/[^\d]/g,'').replace(/^1/,'');
   return d.length===10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : (raw || '');
+}
+function escapeHtml(s = '') {
+  return String(s).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[m]));
+}
+
+/* outcome / response helpers for workflow filters */
+const OUTCOME_LABEL_TO_CODE = {
+  'Answered': 'answered',
+  'No Answer': 'no_answer',
+  'Voicemail': 'voicemail',
+  'Wrong Number': 'wrong_number',
+  'Do Not Call': 'do_not_call',
+};
+
+function outcomeMatchesFilter(outcome, filterVal) {
+  if (!filterVal || filterVal === 'all') return true;
+  const internal = (outcome || '').toLowerCase();
+  const allowed = filterVal.map((label) => {
+    if (OUTCOME_LABEL_TO_CODE[label]) return OUTCOME_LABEL_TO_CODE[label];
+    // fallback: lower + underscores
+    return String(label).toLowerCase().replace(/\s+/g, '_');
+  });
+  return allowed.includes(internal);
+}
+
+function responseMatchesFilter(response, filterVal) {
+  if (!filterVal || filterVal === 'all') return true;
+  if (!response) return false;
+  const r = String(response).toLowerCase();
+  return filterVal.some((label) => String(label).toLowerCase() === r);
 }
 
 /* =================================================================
@@ -69,13 +100,18 @@ export default async function CallExecution(root) {
   function isFinished() {
     return totals.total > 0 && totals.made >= totals.total;
   }
-  let progressRows = [];   // full rows from call_progress for this campaign
+  let progressRows = [];       // full rows from call_progress for this campaign
   let contactsById = new Map();  // Map contact_id -> contact row
+
+  // Parent campaign row + workflow info for "next step"
+  let parentCampaign = null;      // the call_campaigns row
+  let workflowMeta = null;        // parsed workflow JSON (from TEXT)
+  let nextCallAction = null;      // next event in workflow with type === 'call'
 
   // DataCollection component instance for current contact
   let dc = null;
 
-  /* -------------------- Boot: load contacts + totals -------------------- */
+  /* -------------------- Boot: load contacts + totals + workflow ------------ */
   await hydrate();
 
   function progressPct() {
@@ -112,26 +148,52 @@ export default async function CallExecution(root) {
 
       let idSet = new Set((prog || []).map(r => r.contact_id));
 
-      // 2) Fallback: if no progress yet, seed from call_campaigns.contact_ids
-      if (!idSet.size) {
-        const { data: cc, error: ccErr } = await s
-          .from('call_campaigns')
-          .select('contact_ids')
-          .eq('campaign_id', campaign_id)
-          .maybeSingle();
-        if (ccErr) throw ccErr;
-        if (cc?.contact_ids?.length) {
-          idSet = new Set(cc.contact_ids);
-        }
+      // 2) Load campaign row (contact_ids + workflow + survey settings)
+      const { data: cc, error: ccErr } = await s
+        .from('call_campaigns')
+        .select('campaign_name, contact_ids, filters, survey_questions, survey_options, workflow')
+        .eq('campaign_id', campaign_id)
+        .maybeSingle();
+
+      if (ccErr) throw ccErr;
+      parentCampaign = cc || null;
+
+      // If no progress yet, seed queue from campaign.contact_ids
+      if (!idSet.size && cc?.contact_ids?.length) {
+        idSet = new Set(cc.contact_ids);
       }
 
       queue = [...idSet];
 
-      // 3) Fetch contacts (coerce types to match your schema)
+      // 3) Parse workflow TEXT -> JSON and compute "next call action"
+      workflowMeta = null;
+      nextCallAction = null;
+      if (cc?.workflow) {
+        let wf = cc.workflow;
+        if (typeof wf === 'string') {
+          try {
+            wf = JSON.parse(wf);
+          } catch (e) {
+            console.warn('[call_execution] Could not parse workflow JSON string:', e, wf);
+            wf = null;
+          }
+        }
+        if (wf && typeof wf === 'object' && Array.isArray(wf.events)) {
+          // Sort by order to be safe
+          const ordered = [...wf.events].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+          workflowMeta = { ...wf, events: ordered };
+
+          // Current campaign is executing the FIRST event in this list.
+          // "Next call action" is the first later event with type === 'call'.
+          const next = ordered.slice(1).find(ev => ev.type === 'call');
+          if (next) nextCallAction = next;
+        }
+      }
+
+      // 4) Fetch contacts (coerce types to match your schema)
       let rows = [];
       if (idSet.size) {
         const ids = [...idSet].map(v => {
-          // If your contacts.contact_id is integer, coerce:
           const n = Number(v);
           return Number.isFinite(n) && String(n) === String(v) ? n : v; // keep string UUIDs as-is
         });
@@ -147,13 +209,13 @@ export default async function CallExecution(root) {
       contacts = rows;
       contactsById = new Map(contacts.map(c => [String(c.contact_id), c]));
 
-      // 4) Totals
+      // 5) Totals
       const made = progressRows.filter(r => (r.attempts ?? 0) > 0).length;
       const answered = progressRows.filter(r => r.outcome === 'answered').length;
       const missed = progressRows.filter(r => r.outcome === 'no_answer').length;
       totals = { total: queue.length, made, answered, missed };
 
-      // 5) Start pointer
+      // 6) Start pointer
       if (queue.length) {
         const firstUnattemptedIdx = queue.findIndex(id => {
           const row = progressRows.find(r => String(r.contact_id) === String(id));
@@ -169,7 +231,6 @@ export default async function CallExecution(root) {
     }
   }
 
-
   /* ------------------------------ Render ------------------------------ */
   function render() {
     wrap.innerHTML = '';
@@ -178,7 +239,92 @@ export default async function CallExecution(root) {
   }
 
   /* --------------------------- Summary Screen --------------------------- */
+  async function executeNextStepCampaign() {
+    try {
+      const s = window.supabase;
+      if (!s) throw new Error('Supabase client not found');
+
+      if (!nextCallAction || !workflowMeta) {
+        alert('No next call action defined in workflow.');
+        return;
+      }
+
+      // 1) Filter contacts from this campaign according to next action filters
+      const f = nextCallAction.filters || {};
+      const fOutcomes = f.outcomes ?? 'all';
+      const fResponses = f.responses ?? 'all';
+
+      const matchingRows = progressRows.filter((row) =>
+        outcomeMatchesFilter(row.outcome, fOutcomes) &&
+        responseMatchesFilter(row.response, fResponses)
+      );
+
+      const nextContactIds = [...new Set(matchingRows.map(r => r.contact_id))];
+
+      if (!nextContactIds.length) {
+        alert('No contacts match the filters for the next call action.');
+        return;
+      }
+
+      // 2) Compute remaining workflow for the new campaign:
+      //    New campaign executes this "nextCallAction" as its first event,
+      //    and keeps any further events after it.
+      const ordered = workflowMeta.events || [];
+      const idx = ordered.findIndex(ev => ev.id === nextCallAction.id);
+      let remainingEvents;
+      if (idx >= 0) {
+        remainingEvents = ordered.slice(idx).map((ev, i) => ({ ...ev, order: i }));
+      } else {
+        // Fallback: just this one action
+        remainingEvents = [{ ...nextCallAction, order: 0 }];
+      }
+
+      const nowIso = new Date().toISOString();
+      const nextWorkflow = {
+        events: remainingEvents,
+        filters: workflowMeta.filters || {},
+        saved_at: nowIso,
+      };
+
+      // 3) Build new campaign payload
+      const baseName = parentCampaign?.campaign_name || 'Follow-up Campaign';
+      const stepName = nextCallAction.title || 'Call Action';
+      const newName = `${baseName} — ${stepName}`;
+
+      const insertPayload = {
+        campaign_name: newName,
+        contact_ids: nextContactIds,
+        filters: nextCallAction.filters || null, // store outcome/response filters for this step
+        survey_questions: parentCampaign?.survey_questions || null,
+        survey_options: parentCampaign?.survey_options || null,
+        created_at: nowIso,
+        updated_at: nowIso,
+        workflow: JSON.stringify(nextWorkflow),   // TEXT column
+      };
+
+      const { data: inserted, error } = await s
+        .from('call_campaigns')
+        .insert(insertPayload)
+        .select('campaign_id')
+        .single();
+
+      if (error) throw error;
+
+      const newId = inserted.campaign_id;
+      alert('Next-step campaign created. Redirecting to new campaign...');
+      location.hash = `#/call-execution/${encodeURIComponent(newId)}`;
+    } catch (e) {
+      console.error('[call_execution] executeNextStepCampaign failed', e);
+      alert('Could not create the next-step campaign. Please check the console for details.');
+    }
+  }
+
   function renderSummary() {
+    const finished = isFinished();
+    const nextLabel = nextCallAction && nextCallAction.title
+      ? `Execute Next Step: ${nextCallAction.title}`
+      : 'Execute Next Step';
+
     wrap.innerHTML = `
       <div class="cards" style="align-items:flex-start">
         <div class="card" style="grid-column:span 12; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -188,7 +334,13 @@ export default async function CallExecution(root) {
             <div class="label">${totals.made}/${totals.total} complete • ${totals.answered} answered • ${totals.missed} missed</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
-            ${!isFinished() ? `<button id="btn-continue" class="btn-add">Continue Calling</button>` : ``}
+            ${
+              !finished
+                ? `<button id="btn-continue" class="btn-add">Continue Calling</button>`
+                : (nextCallAction
+                    ? `<button id="btn-next-step" class="btn-add">${escapeHtml(nextLabel)}</button>`
+                    : ``)
+            }
             <a id="btn-return" class="btn-glass" href="#/calls">Return to Calls</a>
           </div>
         </div>
@@ -220,7 +372,6 @@ export default async function CallExecution(root) {
     const cont = wrap.querySelector('#btn-continue');
     if (cont) {
       cont.onclick = () => {
-        // Recompute pointer to first unattempted, just in case
         if (queue.length) {
           const firstUnattemptedIdx = queue.findIndex(id => {
             const row = progressRows.find(r => String(r.contact_id) === String(id));
@@ -231,8 +382,13 @@ export default async function CallExecution(root) {
         renderLive();
       };
     }
-  }
 
+    // Wire "Execute Next Step: {Action}" when finished and nextCallAction present
+    const nextBtn = wrap.querySelector('#btn-next-step');
+    if (nextBtn) {
+      nextBtn.onclick = () => executeNextStepCampaign();
+    }
+  }
 
   /* ------------------------------ Live Calling UI ------------------------------ */
   function renderLive() {
@@ -279,13 +435,11 @@ export default async function CallExecution(root) {
     head.append(title, phoneWrap);
     wrap.append(head);
 
-
     // Contact info
     const infoCard = renderContactInfo(c);
     const infoWrap = div('card');
     infoWrap.append(infoCard);
     wrap.append(infoWrap);
-
 
     // Interactions timeline
     const historyCard = div('card');
@@ -319,8 +473,6 @@ export default async function CallExecution(root) {
     wrap.append(actions);
   }
 
-
-
   /* -------------------------- Navigation -------------------------- */
   function onBack() {
     if (index > 0) { index -= 1; render(); }
@@ -334,8 +486,6 @@ export default async function CallExecution(root) {
       renderSummary();
     }
   }
-
-
 
   /* ------------------------- Persist outcome ---------------------- */
   async function onOutcome(kind) {
@@ -386,7 +536,6 @@ export default async function CallExecution(root) {
         const missed = progressRows.filter(r => r.outcome === 'no_answer').length;
         totals = { total: queue.length, made, answered, missed };
       }
-
 
       next();
     } catch (e) {
