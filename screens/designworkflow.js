@@ -343,18 +343,24 @@ export default function DesignWorkflow(root) {
 
   // ---- Persistence ----------------------------------------------------------
   // ---- Persistence ----------------------------------------------------------
+  // ---- Persistence ----------------------------------------------------------
   async function persistWorkflow() {
     if (!campaign_id) {
       alert('Please specify a campaign_id first.');
       return;
     }
+
+    // Full workflow object, including evt.email { subject, preheader, html }
+    const workflowObj = {
+      events,
+      filters: lastChosenFilters,
+      saved_at: new Date().toISOString(),
+    };
+
     const payload = {
-      workflow: {
-        events,
-        filters: lastChosenFilters,
-        saved_at: new Date().toISOString()
-      },
-      updated_at: new Date().toISOString()
+      // ⬇️ store as TEXT in call_campaigns.workflow
+      workflow: JSON.stringify(workflowObj),
+      updated_at: new Date().toISOString(),
     };
 
     if (globalThis.supabase?.from) {
@@ -363,6 +369,7 @@ export default function DesignWorkflow(root) {
           .from('call_campaigns')
           .update(payload)
           .eq('campaign_id', campaign_id);
+
         if (error) throw error;
 
         // ✅ Go back to Calls list after saving
@@ -373,10 +380,10 @@ export default function DesignWorkflow(root) {
       }
     } else {
       console.log('[demo] would update call_campaigns', campaign_id, payload);
-      // ✅ Demo mode: still route back to Calls
       location.hash = '#/calls';
     }
   }
+
 
 
 

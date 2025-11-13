@@ -13,7 +13,7 @@ export default function SignIn(root) {
              style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.12);margin-bottom:14px;">
       <div style="display:flex; gap:8px;">
         <button id="rp-login" class="btn-add">Sign in</button>
-        <button id="rp-signup" class="btn-glass">Create account</button>
+        <button id="rp-signup" class="btn">Create account</button>
       </div>
       <p class="label" id="rp-msg" style="margin-top:10px;"></p>
     </div>
